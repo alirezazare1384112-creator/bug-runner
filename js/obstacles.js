@@ -3,6 +3,20 @@ window.BR = window.BR || {};
 BR.Obstacles = (function () {
   var C = BR.CONFIG.COLORS;
 
+  // PNG asset manifest — auto-loaded at init, falls back to canvas draw if missing
+  var MANIFEST = {};
+  var TYPES_SEED = [
+    'syntax-bug', 'null-pointer', 'memory-leak', 'firewall',
+    'broken-code', 'server-failure', 'stack-overflow'
+  ];
+  for (var i = 0; i < TYPES_SEED.length; i++) {
+    MANIFEST['ob-' + TYPES_SEED[i]] = 'assets/obstacles/ob-' + TYPES_SEED[i] + '.png';
+  }
+
+  function init() {
+    BR.Assets.loadManifest(MANIFEST);
+  }
+
   var TYPES = [
     {
       id: 'syntax-bug', w: 46, h: 40, unlock: 0,
@@ -235,11 +249,15 @@ BR.Obstacles = (function () {
 
   function drawSprite(ctx, type, x, y, t, sprite) {
     if (sprite) {
-      ctx.drawImage(sprite, x, y + type.h - sprite.height, sprite.width, sprite.height);
+      // Draw sprite scaled to the obstacle's logical w × h (not native sprite px).
+      // Anchor: bottom-center, so the sprite's feet sit on the obstacle baseline.
+      var dw = type.w;
+      var dh = type.h;
+      ctx.drawImage(sprite, x, y, dw, dh);
       return;
     }
     type.draw(ctx, x, y, t);
   }
 
-  return { TYPES: TYPES, pick: pick, drawSprite: drawSprite };
+  return { TYPES: TYPES, pick: pick, drawSprite: drawSprite, init: init, MANIFEST: MANIFEST };
 })();

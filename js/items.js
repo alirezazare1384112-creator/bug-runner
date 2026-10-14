@@ -3,6 +3,32 @@ window.BR = window.BR || {};
 BR.Items = (function () {
   var C = BR.CONFIG.COLORS;
 
+  // PNG asset manifest — auto-loaded at init, falls back to canvas draw if missing
+  var MANIFEST = {
+    'item-bit': 'assets/items/bit.png',
+    'item-byte': 'assets/items/byte-item.png',
+    'item-fragment': 'assets/items/fragment.png',
+    'item-xp': 'assets/items/xp.png'
+  };
+
+  function init() {
+    BR.Assets.loadManifest(MANIFEST);
+  }
+
+  function drawSprite(ctx, type, x, y, t, sprite) {
+    if (sprite) {
+      var bob = Math.sin(t * 4 + x * 0.02) * 3;
+      // Scale sprite to the item's logical w × h (not native sprite px).
+      // Anchor: center, with a gentle bob for "pickable" feel.
+      ctx.save();
+      ctx.translate(x + type.w / 2, y + type.h / 2 + bob);
+      ctx.drawImage(sprite, -type.w / 2, -type.h / 2, type.w, type.h);
+      ctx.restore();
+      return;
+    }
+    type.draw(ctx, x, y, t);
+  }
+
   var TYPES = {
     bit: {
       id: 'bit', w: 22, h: 22, score: 10, kind: 'bit',
@@ -138,5 +164,5 @@ BR.Items = (function () {
     }];
   }
 
-  return { TYPES: TYPES, makeArc: makeArc, makeSolo: makeSolo };
+  return { TYPES: TYPES, makeArc: makeArc, makeSolo: makeSolo, init: init, drawSprite: drawSprite, MANIFEST: MANIFEST };
 })();

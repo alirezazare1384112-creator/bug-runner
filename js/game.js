@@ -22,6 +22,8 @@ BR.Game = (function () {
     canvas = cv;
     ctx = canvas.getContext('2d');
     BR.Player.init();
+    BR.Obstacles.init();
+    BR.Items.init();
     resize();
     window.addEventListener('resize', resize);
     document.addEventListener('visibilitychange', function () {
@@ -355,7 +357,7 @@ BR.Game = (function () {
     var i;
     for (i = 0; i < items.length; i++) {
       var it = items[i];
-      it.type.draw(ctx, it.x, it.y, time + it.t0);
+      BR.Items.drawSprite(ctx, it.type, it.x, it.y, time + it.t0, BR.Assets.get('item-' + it.type.id));
     }
 
     if (player) {
