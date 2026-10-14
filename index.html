@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Bug Runner</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app">
+  <canvas id="game"></canvas>
+
+  <div id="hud" class="hidden">
+    <div class="hud-right">
+      <div class="hud-chip"><span class="hud-label">امتیاز</span><span id="hud-score" class="hud-value">0</span></div>
+      <div class="hud-chip"><span class="hud-label">مسافت</span><span id="hud-dist" class="hud-value">0m</span></div>
+    </div>
+    <div class="hud-left">
+      <div id="hud-hp" class="hud-hp"></div>
+      <div class="hud-chip bits"><span class="bit-icon"></span><span id="hud-bits" class="hud-value">0</span></div>
+      <button id="btn-pause" class="hud-btn" aria-label="توقف">II</button>
+    </div>
+    <div id="hud-env" class="hud-env"></div>
+  </div>
+
+  <div id="touch-controls" class="hidden">
+    <button id="btn-jump" class="touch-btn" aria-label="پرش">↑</button>
+  </div>
+
+  <div id="overlay-start" class="overlay">
+    <div class="panel">
+      <h1 class="logo">BUG<span>RUNNER</span></h1>
+      <p class="tagline">از دل کد خطا فرار کن، داده‌ها را جمع کن</p>
+      <div class="menu-row">
+        <button id="btn-start" class="btn primary">شروع بازی</button>
+      </div>
+      <div class="menu-row meta">
+        <span id="best-score">رکورد: 0</span>
+        <label class="toggle"><input type="checkbox" id="opt-fx"><span>کاهش جلوه‌ها</span></label>
+      </div>
+      <p class="hint">.Space / ↑ / کلیک / لمس = پرش (دوباره = پرش دوبل)</p>
+    </div>
+  </div>
+
+  <div id="overlay-pause" class="overlay hidden">
+    <div class="panel">
+      <h2>توقف</h2>
+      <div class="menu-row">
+        <button id="btn-resume" class="btn primary">ادامه</button>
+        <button id="btn-quit" class="btn ghost">خروج به منو</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="overlay-over" class="overlay hidden">
+    <div class="panel">
+      <h2 id="over-title">بازی تمام شد</h2>
+      <div class="result-grid">
+        <div class="result"><span class="result-label">امتیاز</span><span id="final-score" class="result-value">0</span></div>
+        <div class="result"><span class="result-label">مسافت</span><span id="final-dist" class="result-value">0m</span></div>
+        <div class="result"><span class="result-label">بیت‌ها</span><span id="final-bits" class="result-value">0</span></div>
+      </div>
+      <p id="new-record" class="record hidden">رکورد جدید!</p>
+      <div class="menu-row">
+        <button id="btn-retry" class="btn primary">دوباره</button>
+        <button id="btn-menu" class="btn ghost">منو</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/assets.js"></script>
+<script src="js/sfx.js"></script>
+<script src="js/particles.js"></script>
+<script src="js/environments.js"></script>
+<script src="js/obstacles.js"></script>
+<script src="js/items.js"></script>
+<script src="js/player.js"></script>
+<script src="js/game.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
