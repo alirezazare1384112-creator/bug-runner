@@ -1,0 +1,4 @@
+test/*.png
+test/*.log
+edgetmp/
+node_modules/
