@@ -1,8 +1,23 @@
-# Bug Runner — Enemy Design Reference
+# Bug Runner — Enemy Design Reference (Rev 2 — Pixel-Glitch Style)
 
 > Companion to Byte the Debugger hero sheet.
-> All enemies share Byte's visual world: stylized 3D cartoon-modern, polished clean surfaces, deep navy background `#10152B`.
-> Each enemy has a different signature accent color so they're distinguishable from each other and from the hero at 64–128 px tall.
+> **Style aligned to player reference images**: glossy dark bodies + neon emissive pixel/voxel accents + glitch aesthetic (scattered pixel squares, floating pixel particles, occasional data streaks).
+> All enemies rendered on transparent-checkered background (white-and-gray checkerboard indicating alpha channel) for direct use as game assets.
+
+---
+
+## Visual Style (shared across all enemies)
+
+| Property | Value |
+|---|---|
+| Render style | High-fidelity stylized 3D, polished PBR materials |
+| Body material | Glossy dark polymer/metal — charcoal-black, deep navy, dark purple |
+| Accents | Neon emissive pixel/voxel squares in red, magenta, orange, cyan, yellow |
+| Eye style | Pixel art (slanted angry shapes, X shapes, square grids), emissive |
+| Mouth style | Simple pixel lines or jagged voxel voids |
+| Glitch details | Scattered glowing pixel squares on body, floating particle squares, horizontal data streaks |
+| Lighting | Soft studio, rim light on edges, soft contact shadow |
+| Background | Transparent checkered (PNG alpha) |
 
 ---
 
@@ -10,71 +25,73 @@
 
 | # | Enemy | Type | Accent Color | Hex | Behaviour |
 |---|---|---|---|---|---|
-| 1 | **Glitch** | Crawler (basic) | Magenta | `#FF3DC8` | Walks toward player, slow but unpredictable |
-| 2 | **Syntax Error** | Flying | Red | `#FF4747` | Flies in sine-wave pattern |
-| 3 | **Malware Worm** | Fast crawler | Orange | `#FF8A3D` | Slides quickly across ground in S-shape |
-| 4 | **Stack Brute** | Heavy / mini-boss | Cyan | `#3DFFEB` | Slow, takes multiple hits, knocks player back |
+| 1 | **Glitch Spider** | Crawler (basic) | Red | `#FF0033` | Walks toward player, predatory low crouch |
+| 2 | **Glitch Cube** | Heavy / mini-boss | Magenta + Cyan | `#FF3DC8` / `#3DFFEB` | Slow, takes multiple hits |
+| 3 | **Malware Worm** | Fast crawler | Orange | `#FF8A3D` | Slides quickly in S-curve |
+| 4 | **Syntax Error** | Flying | Red | `#FF4747` | Flies in sine-wave pattern |
 | 5 | **Null Spike** | Static ground hazard | Purple | `#7A3DFF` | Immobile spike, must jump over |
-| 6 | **Infinite Loop** | Rotating ring hazard | Yellow | `#FFD23D` | Spins in place, must time jump |
-
----
-
-## Design Principles (shared with Byte)
-
-- Same material language: glossy polymer shells, matte tech fabric, glowing accents.
-- Same palette base: white-silver `#EAF2FF`, dark blue `#19386B`, primary blue `#477BFF`.
-- Each enemy uses ONE distinct accent color to communicate threat type at a glance.
-- Cute-but-threatening — readable silhouette even without color.
-- All designs convertible to sprite sheets or 3D models later.
+| 6 | **Infinite Loop** | Rotating ring hazard | Yellow | `#FFD23D` | Spins, must time jump |
+| 7 | **Server Tower** | Environmental enemy | Red + Cyan | `#FF4747` / `#42E8E0` | Stationary, shoots error projectiles, smokes |
 
 ---
 
 ## Per-Enemy Specs
 
-### 1. Glitch (basic crawler)
-- Body: white-silver polymer with magenta glitchy pixel squares scattered on the surface.
-- Asymmetric eyes — one big, one small, both glowing magenta.
-- Broken pixelated edges, slight digital distortion.
-- Short stubby arms and legs, oversized head.
-- No mouth.
-- Animation plan: walk cycle (3-4 frames), idle flicker, damage dissolve.
+### 1. Glitch Spider
+- Glossy black dome-bodied robotic spider, 8 mechanical jointed legs with visible ball-and-socket joints.
+- Circular black faceplate (visor) with two slanted angry RED pixel eyes + red pixel frown.
+- Red pixel squares scattered on abdomen (digital corruption texture).
+- Two thin segmented antennae with glowing red tip bulbs.
+- Floating red square outlines (hollow squares) drift around body.
+- Predatory low crouch pose.
 
-### 2. Syntax Error (flyer)
-- Body: small dark blue central core.
-- Wings: two broken red bracket glyphs (`<` and flipped `>`), glowing red.
-- Two small red glowing eyes.
+### 2. Glitch Cube
+- Perfect cube with heavily beveled edges, made of interlocking voxel segments.
+- Deep void-purple / dark indigo, almost black.
+- Recessed square face plate on front.
+- Two glowing WHITE/MAGENTA X-shaped pixel eyes (voxel blocks forming an X).
+- Jagged rectangular void mouth filled with bright magenta voxel energy.
+- Thin neon magenta/cyan lines tracing beveled edges.
+- Floating magenta particle voxels + horizontal glitch streaks.
+
+### 3. Malware Worm
+- Long segmented worm body, 7-8 rounded cube segments.
+- Each segment: glossy charcoal-black with orange glowing pixel seams.
+- Small orange pixel spikes on each segment.
+- Head: two orange pixel eyes + jagged orange pixel mouth.
+- Body in S-curve on ground.
+- Floating orange pixel particles trail behind.
+
+### 4. Syntax Error
+- Small dark navy central body, glossy.
+- Two large wings made of broken RED PIXEL bracket glyphs: one `<`, one flipped `>`.
+- Wing edges glow red; red pixel particles trail behind wings.
+- Two small red pixel eyes in center.
 - Always floats — no legs.
-- Animation plan: wing flap cycle, sine-wave hover, dive attack.
 
-### 3. Malware Worm (fast crawler)
-- Body: 7-8 segmented rounded cubes alternating orange/yellow.
-- Each segment has small side spikes.
-- Head segment: two orange eyes + small mouth opening.
-- Body curls in S-shape on ground.
-- Animation plan: slither cycle (4-5 frames), speed lines when rushing.
-
-### 4. Stack Brute (heavy)
-- Body: stacked dark blue cubes with cyan glowing seams.
-- Large rectangular arms ending in cube fists.
-- Single big cyan glowing eye in center of body.
-- Short stubby legs (two cubes each).
-- White-silver corner trims.
-- Animation plan: slow walk, arm slam attack, hit reaction, defeat crumble.
-
-### 5. Null Spike (static hazard)
+### 5. Null Spike
 - Sharp crystal spike rising vertically from ground.
-- Dark purple crystal with darker base.
-- Single eye near the top.
-- "null" symbol engraved at the base.
-- No movement — pure placement hazard.
-- Animation plan: idle eye blink, subtle glow pulse.
+- Deep void-purple crystal, darker base.
+- Single glowing PURPLE PIXEL EYE near the top (small square grid).
+- "null" pixel text engraved at base, glowing purple.
+- Floating purple pixel squares drift around.
 
-### 6. Infinite Loop (rotating ring hazard)
-- Glowing yellow circular ring floating just above ground.
-- Two small arrow marks indicating clockwise rotation.
-- Translucent energy material.
-- Spins continuously.
-- Animation plan: constant rotation, slight vertical bob.
+### 6. Infinite Loop
+- Glowing YELLOW circular ring floating just above ground.
+- Made of small bright yellow pixel squares arranged in a circle.
+- Two small arrow pixel marks indicating clockwise rotation.
+- No eyes. Translucent energy material.
+- Yellow pixel particles orbiting.
+
+### 7. Server Tower
+- Tall rectangular prism tower, deep navy-blue industrial metal, chamfered edges.
+- Wider stepped rectangular base.
+- Top: recessed ventilation grate, plume of volumetric grey smoke rising, orange-yellow ember glow at smoke source.
+- Front-left panel: large illuminated RED WARNING TRIANGLE with "!" exclamation mark (acts as angry eye).
+- Front-right panel: four stacked server drive bays with mix of solid BLUE (operational) and RED (error) square LEDs — resembles a mouth/teeth grid.
+- Three thick black corrugated cables emerging from bottom-right, coiling onto base like tentacles.
+- Thin cyan glowing edge lines on top corners and base edge. One base corner has RED glow instead of cyan (damage indicator).
+- Stationary — shoots error projectiles from bays.
 
 ---
 
@@ -85,11 +102,12 @@ All enemy sheets live in `assets/enemies/`:
 | File | Contents |
 |---|---|
 | `00_enemy_roster.png` | All 6 enemies side-by-side for at-a-glance comparison |
-| `01_glitch_model.png` | Glitch 5-view turnaround |
+| `01_glitch_model.png` | Glitch Spider 5-view turnaround |
 | `02_syntax_error_model.png` | Syntax Error 4-view (front, 3/4, side, top) |
 | `03_malware_worm_model.png` | Malware Worm 3-view (side, 3/4, head close-up) |
-| `04_stack_brute_model.png` | Stack Brute 5-view turnaround |
+| `04_stack_brute_model.png` | Glitch Cube 5-view turnaround |
 | `05_hazards.png` | Null Spike + Infinite Loop side-by-side |
+| `06_server_tower_model.png` | Server Tower 4-view (3/4, front, side, back) |
 
 Generation scripts kept under `/home/z/my-project/scripts/enemy_prompts/` and `/home/z/my-project/scripts/gen_enemies.sh`.
 
@@ -97,17 +115,17 @@ Generation scripts kept under `/home/z/my-project/scripts/enemy_prompts/` and `/
 
 ## Difficulty Progression (suggested)
 
-1. **Tutorial / Level 1:** Glitch + Null Spike only
+1. **Tutorial / Level 1:** Glitch Spider + Null Spike only
 2. **Level 2:** + Syntax Error (flying)
-3. **Level 3:** + Malware Worm (fast ground)
-4. **Level 4:** + Infinite Loop (timing hazard)
-5. **Level 5 (boss):** Stack Brute mini-boss + mixed waves
+3. **Level 3:** + Malware Worm (fast ground) + Infinite Loop (timing hazard)
+4. **Level 4:** + Server Tower (stationary shooter)
+5. **Level 5 (boss):** Glitch Cube mini-boss + mixed waves
 
 ---
 
 ## Next Steps
 
-1. Review enemy designs — approve base looks.
+1. Review redesigned enemies — confirm they match player reference style.
 2. Build sprite sheets / animation frames from these references.
 3. Design environment themes (terminal, server room, firewall, kernel).
 4. Implement in-engine spawn logic + AI per enemy type.
