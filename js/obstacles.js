@@ -19,8 +19,8 @@ BR.Obstacles = (function () {
 
   var TYPES = [
     {
-      id: 'syntax-bug', w: 46, h: 40, unlock: 0,
-      box: { x: 6, y: 6, w: 34, h: 30 },
+      id: 'syntax-bug', w: 80, h: 70, unlock: 0,
+      box: { x: 10, y: 8, w: 60, h: 54 },
       draw: function (ctx, x, y, t) {
         var wob = Math.sin(t * 8) * 2;
         ctx.save();
@@ -49,8 +49,8 @@ BR.Obstacles = (function () {
       }
     },
     {
-      id: 'null-pointer', w: 34, h: 56, unlock: 0,
-      box: { x: 5, y: 4, w: 24, h: 48 },
+      id: 'null-pointer', w: 60, h: 100, unlock: 0,
+      box: { x: 10, y: 6, w: 40, h: 88 },
       draw: function (ctx, x, y, t) {
         var float = Math.sin(t * 3) * 3;
         ctx.save();
@@ -77,8 +77,8 @@ BR.Obstacles = (function () {
       }
     },
     {
-      id: 'memory-leak', w: 38, h: 52, unlock: 400,
-      box: { x: 5, y: 5, w: 28, h: 42 },
+      id: 'memory-leak', w: 66, h: 96, unlock: 400,
+      box: { x: 10, y: 8, w: 46, h: 80 },
       draw: function (ctx, x, y, t) {
         ctx.save();
         ctx.translate(x + 19, y + 26);
@@ -105,8 +105,8 @@ BR.Obstacles = (function () {
       }
     },
     {
-      id: 'firewall', w: 60, h: 64, unlock: 900,
-      box: { x: 5, y: 10, w: 50, h: 52 },
+      id: 'firewall', w: 100, h: 110, unlock: 900,
+      box: { x: 8, y: 14, w: 84, h: 88 },
       draw: function (ctx, x, y, t) {
         ctx.save();
         ctx.translate(x, y);
@@ -139,8 +139,8 @@ BR.Obstacles = (function () {
       }
     },
     {
-      id: 'broken-code', w: 52, h: 48, unlock: 1500,
-      box: { x: 6, y: 6, w: 40, h: 36 },
+      id: 'broken-code', w: 90, h: 82, unlock: 1500,
+      box: { x: 10, y: 10, w: 70, h: 62 },
       draw: function (ctx, x, y, t) {
         ctx.save();
         ctx.translate(x + 26, y + 24);
@@ -167,8 +167,8 @@ BR.Obstacles = (function () {
       }
     },
     {
-      id: 'server-failure', w: 76, h: 70, unlock: 2300,
-      box: { x: 6, y: 8, w: 64, h: 58 },
+      id: 'server-failure', w: 120, h: 130, unlock: 2300,
+      box: { x: 10, y: 14, w: 100, h: 108 },
       draw: function (ctx, x, y, t) {
         ctx.save();
         ctx.translate(x + 38, y + 35);
@@ -206,8 +206,8 @@ BR.Obstacles = (function () {
       }
     },
     {
-      id: 'stack-overflow', w: 44, h: 86, unlock: 3200,
-      box: { x: 4, y: 6, w: 36, h: 76 },
+      id: 'stack-overflow', w: 80, h: 150, unlock: 3200,
+      box: { x: 8, y: 10, w: 64, h: 134 },
       draw: function (ctx, x, y, t) {
         ctx.save();
         ctx.translate(x + 22, y);
@@ -249,11 +249,26 @@ BR.Obstacles = (function () {
 
   function drawSprite(ctx, type, x, y, t, sprite) {
     if (sprite) {
-      // Draw sprite scaled to the obstacle's logical w × h (not native sprite px).
-      // Anchor: bottom-center, so the sprite's feet sit on the obstacle baseline.
-      var dw = type.w;
-      var dh = type.h;
-      ctx.drawImage(sprite, x, y, dw, dh);
+      // Scale sprite to fit type.w × type.h while preserving aspect ratio.
+      // Anchor: bottom-center (sprite's feet sit on the obstacle baseline y+type.h).
+      var sw = sprite.width;
+      var sh = sprite.height;
+      var sAspect = sw / sh;
+      var tAspect = type.w / type.h;
+      var dw, dh, dx;
+      if (sAspect > tAspect) {
+        // Sprite is wider than target box — fit to width, center vertically.
+        dw = type.w;
+        dh = type.w / sAspect;
+        dx = x;
+      } else {
+        // Sprite is taller than target box — fit to height, center horizontally.
+        dh = type.h;
+        dw = type.h * sAspect;
+        dx = x + (type.w - dw) / 2;
+      }
+      var dy = y + (type.h - dh);
+      ctx.drawImage(sprite, dx, dy, dw, dh);
       return;
     }
     type.draw(ctx, x, y, t);

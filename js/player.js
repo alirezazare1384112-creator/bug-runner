@@ -114,6 +114,7 @@ BR.Player = (function () {
     }
 
     ctx.save();
+    // Anchor: bottom-center of player's hitbox.
     var cx = p.x + p.w / 2;
     var by = p.y + p.h;
     ctx.translate(cx, by);
@@ -121,9 +122,25 @@ BR.Player = (function () {
     ctx.scale(1 + sq * 0.5, 1 - sq * 0.6);
 
     if (sprite) {
-      var aspect = sprite.width / sprite.height;
-      var dh = p.h + 6;
-      var dw = dh * aspect;
+      // Scale sprite to fit player's logical w × h while preserving aspect ratio.
+      // Use the larger of (sprite's natural fit to p.w) and (sprite's natural fit to p.h)
+      // so the sprite is readable, capped at 1.5× player h to avoid covering too much.
+      var sw = sprite.width;
+      var sh = sprite.height;
+      var sAspect = sw / sh;
+      // Target box: a bit larger than the hitbox so character is visible.
+      var targetW = p.w + 16;
+      var targetH = p.h + 16;
+      var tAspect = targetW / targetH;
+      var dw, dh;
+      if (sAspect > tAspect) {
+        dw = targetW;
+        dh = targetW / sAspect;
+      } else {
+        dh = targetH;
+        dw = targetH * sAspect;
+      }
+      // Bottom-center anchor: drawImage at (-dw/2, -dh).
       ctx.drawImage(sprite, -dw / 2, -dh, dw, dh);
     } else {
       drawPlaceholder(ctx, p, time);

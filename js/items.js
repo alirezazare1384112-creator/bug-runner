@@ -18,11 +18,23 @@ BR.Items = (function () {
   function drawSprite(ctx, type, x, y, t, sprite) {
     if (sprite) {
       var bob = Math.sin(t * 4 + x * 0.02) * 3;
-      // Scale sprite to the item's logical w × h (not native sprite px).
+      // Scale sprite to fit type.w × type.h while preserving aspect ratio.
       // Anchor: center, with a gentle bob for "pickable" feel.
+      var sw = sprite.width;
+      var sh = sprite.height;
+      var sAspect = sw / sh;
+      var tAspect = type.w / type.h;
+      var dw, dh;
+      if (sAspect > tAspect) {
+        dw = type.w;
+        dh = type.w / sAspect;
+      } else {
+        dh = type.h;
+        dw = type.h * sAspect;
+      }
       ctx.save();
       ctx.translate(x + type.w / 2, y + type.h / 2 + bob);
-      ctx.drawImage(sprite, -type.w / 2, -type.h / 2, type.w, type.h);
+      ctx.drawImage(sprite, -dw / 2, -dh / 2, dw, dh);
       ctx.restore();
       return;
     }
@@ -31,8 +43,8 @@ BR.Items = (function () {
 
   var TYPES = {
     bit: {
-      id: 'bit', w: 22, h: 22, score: 10, kind: 'bit',
-      box: { x: 3, y: 3, w: 16, h: 16 },
+      id: 'bit', w: 36, h: 36, score: 10, kind: 'bit',
+      box: { x: 4, y: 4, w: 28, h: 28 },
       draw: function (ctx, x, y, t) {
         var bob = Math.sin(t * 4 + x * 0.02) * 3;
         ctx.save();
@@ -55,8 +67,8 @@ BR.Items = (function () {
       }
     },
     byte: {
-      id: 'byte', w: 28, h: 28, score: 50, kind: 'byte',
-      box: { x: 4, y: 4, w: 20, h: 20 },
+      id: 'byte', w: 44, h: 44, score: 50, kind: 'byte',
+      box: { x: 6, y: 6, w: 32, h: 32 },
       draw: function (ctx, x, y, t) {
         var bob = Math.sin(t * 3.2 + x * 0.015) * 4;
         ctx.save();
@@ -81,8 +93,8 @@ BR.Items = (function () {
       }
     },
     fragment: {
-      id: 'fragment', w: 32, h: 26, score: 80, kind: 'fragment',
-      box: { x: 3, y: 3, w: 26, h: 20 },
+      id: 'fragment', w: 48, h: 40, score: 80, kind: 'fragment',
+      box: { x: 4, y: 4, w: 40, h: 32 },
       draw: function (ctx, x, y, t) {
         var bob = Math.sin(t * 3.6 + x * 0.01) * 3;
         ctx.save();
@@ -107,8 +119,8 @@ BR.Items = (function () {
       }
     },
     xp: {
-      id: 'xp', w: 34, h: 34, score: 200, kind: 'xp',
-      box: { x: 5, y: 5, w: 24, h: 24 },
+      id: 'xp', w: 50, h: 50, score: 200, kind: 'xp',
+      box: { x: 6, y: 6, w: 38, h: 38 },
       draw: function (ctx, x, y, t) {
         var bob = Math.sin(t * 2.5) * 5;
         ctx.save();
