@@ -38,7 +38,8 @@ BR.Player = (function () {
       runTimer: 0,
       squash: 0,
       tilt: 0,
-      tiltTarget: 0
+      tiltTarget: 0,
+      _deathTime: 0
     };
   }
 
@@ -131,7 +132,33 @@ BR.Player = (function () {
   }
 
   function draw(p, ctx, time) {
-    if (!p.alive) return;
+    // If dead, still draw the hurt sprite for the death visual (fading out).
+    if (!p.alive) {
+      // Fade out over 1 second after death.
+      if (!p._deathTime) p._deathTime = time;
+      var deathAge = time - p._deathTime;
+      if (deathAge > 1.2) return; // fully faded out
+      var deathAlpha = Math.max(0, 1 - deathAge / 1.2);
+      ctx.save();
+      ctx.globalAlpha = deathAlpha;
+      var hurtSprite = BR.Assets.get('byte-hurt');
+      if (hurtSprite) {
+        var cx = p.x + p.w / 2;
+        var by = p.y + p.h;
+        ctx.translate(cx, by);
+        ctx.rotate(p.tilt);
+        var sw = hurtSprite.width, sh = hurtSprite.height;
+        var sAspect = sw / sh;
+        var targetW = p.w + 16, targetH = p.h + 16;
+        var tAspect = targetW / targetH;
+        var dw, dh;
+        if (sAspect > tAspect) { dw = targetW; dh = targetW / sAspect; }
+        else { dh = targetH; dw = targetH * sAspect; }
+        ctx.drawImage(hurtSprite, -dw / 2, -dh, dw, dh);
+      }
+      ctx.restore();
+      return;
+    }
     // Iframe flicker — but make it less aggressive (every 3rd frame skip instead of 2nd)
     if (p.iframe > 0 && Math.floor(time * 12) % 3 === 0) return;
 

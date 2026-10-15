@@ -116,6 +116,7 @@
     hudScore.textContent = s.score;
     hudDist.textContent = s.dist + 'm';
     hudBits.textContent = s.bits;
+    updateHp(s.hp);
   }, 120);
 
   $('btn-start').addEventListener('click', function () {

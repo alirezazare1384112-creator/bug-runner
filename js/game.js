@@ -326,6 +326,10 @@ BR.Game = (function () {
       var ob = { x: o.x + o.type.box.x, y: o.y + o.type.box.y, w: o.type.box.w, h: o.type.box.h };
       if (aabb(pb, ob)) {
         var r = BR.Player.hurt(player);
+        // Force state to 'hurt' for visual feedback (shows X eyes, amber core).
+        player.state = 'hurt';
+        player.prevState = 'hurt';
+        player.stateBlend = 1;
         BR.Particles.burst(player.x + player.w / 2, player.y + player.h / 2, '#FF6B7A', 18, 240, 0.55, 3.2, 400);
         shake = reducedFx ? 0.2 : 0.7;
         flashColor = '#FF6B7A';
@@ -340,7 +344,17 @@ BR.Game = (function () {
   function gameOver() {
     if (state === 'over') return;
     state = 'over';
+    // Big death explosion — multi-color burst for dramatic effect.
     BR.Particles.burst(player.x + player.w / 2, player.y + player.h / 2, '#FF6B7A', 30, 300, 0.8, 4, 500);
+    BR.Particles.burst(player.x + player.w / 2, player.y + player.h / 2, '#FFD166', 12, 250, 0.6, 3, 600);
+    BR.Particles.burst(player.x + player.w / 2, player.y + player.h / 2, '#42E8E0', 8, 200, 0.5, 2.5, 700);
+    // Force player to hurt state for the death visual.
+    player.state = 'hurt';
+    player.tiltTarget = -0.3; // dramatic lean back
+    // Big camera shake.
+    shake = reducedFx ? 0.3 : 1.0;
+    flashColor = '#FF6B7A';
+    flashAlpha = 0.4;
     BR.Sfx.over();
     if (onStateChange) onStateChange(state, {
       score: score,
@@ -503,7 +517,7 @@ BR.Game = (function () {
 
   function setReduced(v) { reducedFx = v; BR.Particles.setReduced(v); }
   function getState() { return state; }
-  function getStats() { return { score: score, dist: Math.floor(distance), bits: bits }; }
+  function getStats() { return { score: score, dist: Math.floor(distance), bits: bits, hp: player ? player.hp : 0 }; }
   function onChange(fn) { onStateChange = fn; }
   function skipRaf() { if (!rafId) rafId = requestAnimationFrame(loop); }
 
@@ -530,6 +544,6 @@ BR.Game = (function () {
     jump: jump, getState: getState, getStats: getStats, onChange: onChange,
     setReduced: setReduced, skipRaf: skipRaf, debugPlay: debugPlay,
     // Exposed for testing — not part of public API
-    _update: update, _render: render, _reset: reset
+    _update: update, _render: render, _reset: reset, _player: function() { return player; }
   };
 })();
