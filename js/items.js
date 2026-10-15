@@ -8,7 +8,8 @@ BR.Items = (function () {
     'item-bit': 'assets/items/bit.png',
     'item-byte': 'assets/items/byte-item.png',
     'item-fragment': 'assets/items/fragment.png',
-    'item-xp': 'assets/items/xp.png'
+    'item-xp': 'assets/items/xp.png',
+    'item-heart': 'assets/items/heart.png'
   };
 
   function init() {
@@ -123,6 +124,49 @@ BR.Items = (function () {
         ctx.arc(0, 0, 6, 0, Math.PI * 2);
         ctx.fill();
         ctx.shadowBlur = 0;
+        ctx.restore();
+      }
+    },
+    heart: {
+      id: 'heart', w: 36, h: 32, score: 0, kind: 'heart',
+      box: { x: 4, y: 4, w: 28, h: 24 },
+      draw: function (ctx, x, y, t) {
+        var bob = Math.sin(t * 2.5) * 4;
+        var pulse = 1 + Math.sin(t * 6) * 0.1;
+        ctx.save();
+        ctx.translate(x + 18, y + 16 + bob);
+        ctx.scale(pulse, pulse);
+        // Outer glow halo
+        ctx.shadowColor = '#FF6B7A';
+        ctx.shadowBlur = 18;
+        // Heart shape using two circles + triangle
+        ctx.fillStyle = '#FF6B7A';
+        ctx.beginPath();
+        ctx.arc(-6, -2, 7, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(6, -2, 7, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.moveTo(-12, 2);
+        ctx.lineTo(12, 2);
+        ctx.lineTo(0, 14);
+        ctx.closePath();
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        // Inner highlight (lighter pink)
+        ctx.fillStyle = '#FFB8C5';
+        ctx.beginPath();
+        ctx.arc(-4, -3, 3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(4, -3, 3, 0, Math.PI * 2);
+        ctx.fill();
+        // White shine dot
+        ctx.fillStyle = 'rgba(255,255,255,0.9)';
+        ctx.beginPath();
+        ctx.arc(-5, -4, 1.5, 0, Math.PI * 2);
+        ctx.fill();
         ctx.restore();
       }
     }

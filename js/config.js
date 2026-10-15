@@ -30,6 +30,7 @@ BR.CONFIG = {
 
   ITEM_SPAWN_EVERY: 3.4,
   XP_SPAWN_EVERY: 26,
+  HEART_SPAWN_EVERY: 45,  // hearts are rare rewards — ~45s between spawns
 
   PARTICLE_CAP: 240,
 

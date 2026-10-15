@@ -37,10 +37,22 @@
     hudHp.appendChild(pip);
   }
 
+  var lastHp = BR.CONFIG.HP;
   function updateHp(hp) {
     var pips = hudHp.children;
     for (var i = 0; i < pips.length; i++) {
       pips[i].classList.toggle('off', i >= hp);
+    }
+    // Flash the pip that changed (gained or lost).
+    if (hp !== lastHp) {
+      var changedPip = hp > lastHp ? pips[hp - 1] : pips[lastHp - 1];
+      if (changedPip) {
+        changedPip.classList.remove('flash');
+        void changedPip.offsetWidth; // force reflow
+        changedPip.classList.add('flash');
+        setTimeout(function() { changedPip.classList.remove('flash'); }, 400);
+      }
+      lastHp = hp;
     }
   }
 

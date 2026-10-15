@@ -8,7 +8,7 @@ BR.Game = (function () {
   var speed = 0, distance = 0, score = 0, bits = 0;
   var scrollX = 0;
   var obstacles = [], items = [];
-  var spawnTimer, itemTimer, xpTimer;
+  var spawnTimer, itemTimer, xpTimer, heartTimer;
   var envIndex = 0, envPrev = -1, envFade = 0;
   var time = 0, lastTs;
   var rafId = null;
@@ -59,6 +59,7 @@ BR.Game = (function () {
     spawnTimer = 1.6;
     itemTimer = CFG.ITEM_SPAWN_EVERY;
     xpTimer = CFG.XP_SPAWN_EVERY;
+    heartTimer = CFG.HEART_SPAWN_EVERY;
     envIndex = 0;
     envPrev = -1;
     envFade = 0;
@@ -198,6 +199,17 @@ BR.Game = (function () {
       }
     }
 
+    // Heart spawns — rare healing item. Only spawn if player HP < max.
+    heartTimer -= dt;
+    if (heartTimer <= 0) {
+      if (player.hp < CFG.HP && !obstacleNearSpawn(140)) {
+        items = items.concat(BR.Items.makeSolo(CFG.W + 80, CFG.GROUND_Y, BR.Items.TYPES.heart));
+        heartTimer = CFG.HEART_SPAWN_EVERY * (0.7 + Math.random() * 0.6);
+      } else {
+        heartTimer = 2.0; // retry soon if conditions not met
+      }
+    }
+
     var i;
     for (i = obstacles.length - 1; i >= 0; i--) {
       var o = obstacles[i];
@@ -227,12 +239,24 @@ BR.Game = (function () {
         items.splice(i, 1);
         bits += it.type.kind === 'bit' ? 1 : it.type.kind === 'byte' ? 5 : 0;
         score += it.type.score;
-        var col = it.type.kind === 'xp' ? '#FFD166' : it.type.kind === 'fragment' ? '#FFD166' : it.type.kind === 'byte' ? '#42E8E0' : '#477BFF';
-        BR.Particles.burst(it.x + it.type.w / 2, it.y + it.type.h / 2, col, it.type.kind === 'bit' ? 6 : 12, 160, 0.45, 2.5, 0);
-        if (it.type.kind === 'xp' || it.type.kind === 'fragment') BR.Sfx.bigCollect(); else BR.Sfx.collect();
+        var col = it.type.kind === 'xp' ? '#FFD166' : it.type.kind === 'fragment' ? '#FFD166' : it.type.kind === 'byte' ? '#42E8E0' : it.type.kind === 'heart' ? '#FF6B7A' : '#477BFF';
+        BR.Particles.burst(it.x + it.type.w / 2, it.y + it.type.h / 2, col, it.type.kind === 'bit' ? 6 : 14, 160, 0.45, 2.5, 0);
+        if (it.type.kind === 'xp' || it.type.kind === 'fragment') BR.Sfx.bigCollect();
+        else if (it.type.kind === 'heart') BR.Sfx.bigCollect();
+        else BR.Sfx.collect();
+        // XP core heals +1 HP.
         if (it.type.kind === 'xp' && player.hp < CFG.HP) {
           player.hp++;
           BR.Particles.burst(player.x + player.w / 2, player.y, '#FF6B7A', 10, 130, 0.5, 3, -80);
+        }
+        // Heart item heals +1 HP (up to max).
+        if (it.type.kind === 'heart' && player.hp < CFG.HP) {
+          player.hp++;
+          // Big healing burst — pink hearts flying up from player.
+          BR.Particles.burst(player.x + player.w / 2, player.y, '#FF6B7A', 16, 150, 0.7, 3.5, -120);
+          BR.Particles.burst(player.x + player.w / 2, player.y, '#FFB8C5', 8, 100, 0.5, 2.5, -80);
+          flashColor = '#FF6B7A';
+          flashAlpha = 0.15;
         }
       }
     }
