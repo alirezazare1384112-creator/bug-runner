@@ -130,11 +130,12 @@ BR.Game = (function () {
       envIndex = newEnv;
       envFade = CFG.ENV_FADE_TIME;
       BR.Sfx.env();
+      // Gentle flash — not a sudden "portal" burst. Reduced from 0.22 to 0.08.
       flashColor = BR.Environments.get(envIndex).accent;
-      flashAlpha = 0.22;
+      flashAlpha = 0.08;
     }
     if (envFade > 0) envFade = Math.max(0, envFade - dt);
-    if (flashAlpha > 0) flashAlpha = Math.max(0, flashAlpha - dt * 0.8);
+    if (flashAlpha > 0) flashAlpha = Math.max(0, flashAlpha - dt * 0.5);  // slower fade (was 0.8)
     if (shake > 0) shake = Math.max(0, shake - dt * 3);
 
     BR.Player.update(player, dt);
@@ -316,24 +317,23 @@ BR.Game = (function () {
   function checkCollisions() {
     if (player.iframe > 0 || !player.alive || godMode) return;
     var pb = BR.Player.hitbox(player);
-    // Only check obstacles within the player's viewport x range for performance.
-    // Player is at x=150, so we only need obstacles in roughly 0..CFG.W range.
     var pRight = pb.x + pb.w;
     for (var i = 0; i < obstacles.length; i++) {
       var o = obstacles[i];
-      // Skip if obstacle is fully off-screen left or right of player.
       if (o.x + o.type.w < pb.x - 20 || o.x > pRight + 20) continue;
       var ob = { x: o.x + o.type.box.x, y: o.y + o.type.box.y, w: o.type.box.w, h: o.type.box.h };
       if (aabb(pb, ob)) {
         var r = BR.Player.hurt(player);
-        // Force state to 'hurt' for visual feedback (shows X eyes, amber core).
-        player.state = 'hurt';
-        player.prevState = 'hurt';
-        player.stateBlend = 1;
+        // Knockback: bounce player up. Bigger bounce on death (3rd hit).
+        player.vy = (r === 'dead') ? -550 : -350;
+        player.onGround = false;
+        // Particle burst at hit point.
         BR.Particles.burst(player.x + player.w / 2, player.y + player.h / 2, '#FF6B7A', 18, 240, 0.55, 3.2, 400);
+        // Add amber "spark" particles for digital damage effect.
+        BR.Particles.burst(player.x + player.w / 2, player.y + player.h / 2, '#FFD166', 6, 180, 0.4, 2.5, 300);
         shake = reducedFx ? 0.2 : 0.7;
         flashColor = '#FF6B7A';
-        flashAlpha = 0.25;
+        flashAlpha = 0.3;
         BR.Sfx.hit();
         if (r === 'dead') { gameOver(); }
         return;
@@ -356,11 +356,14 @@ BR.Game = (function () {
     flashColor = '#FF6B7A';
     flashAlpha = 0.4;
     BR.Sfx.over();
-    if (onStateChange) onStateChange(state, {
-      score: score,
-      dist: Math.floor(distance),
-      bits: bits
-    });
+    // Delay showing the game over overlay so the death animation
+    // (knockback bounce + fade) plays first.
+    var stats = { score: score, dist: Math.floor(distance), bits: bits };
+    if (onStateChange) {
+      setTimeout(function () {
+        if (onStateChange) onStateChange('over', stats);
+      }, 1200);
+    }
   }
 
   function loop(ts) {
@@ -373,6 +376,24 @@ BR.Game = (function () {
     else if (state === 'over') {
       BR.Particles.update(dt);
       time += dt;
+      // Continue applying physics to player during death so the knockback
+      // bounce and fall play out naturally.
+      if (player) {
+        player.vy += CFG.GRAVITY * dt;
+        if (player.vy > CFG.MAX_FALL) player.vy = CFG.MAX_FALL;
+        player.y += player.vy * dt;
+        var groundTop = CFG.GROUND_Y - player.h;
+        if (player.y >= groundTop) {
+          player.y = groundTop;
+          player.vy = 0;
+          player.onGround = true;
+        }
+        // Lerp tilt and squash for smooth animation.
+        player.tilt += (player.tiltTarget - player.tilt) * Math.min(1, dt * 8);
+        player.squash += (0 - player.squash) * Math.min(1, dt * 8);
+      }
+      if (shake > 0) shake = Math.max(0, shake - dt * 2);
+      if (flashAlpha > 0) flashAlpha = Math.max(0, flashAlpha - dt * 0.6);
     } else if (state === 'menu') {
       time += dt;
       scrollX += 90 * dt;

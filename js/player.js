@@ -87,26 +87,30 @@ BR.Player = (function () {
 
     // Animation state machine — faster run cycle when going faster.
     if (p.onGround) {
-      // Track state transitions for smooth blending.
-      if (p.state !== 'run') { p.prevState = p.state; p.stateBlend = 0; }
-      p.state = 'run';
-      // Run cycle speed scales with game speed for visual feedback.
-      var speedFactor = (window.BR && BR.Game ? BR.Game.getStats().dist : 0);
-      var cycleSpeed = Math.max(0.05, 0.09 - speedFactor * 0.000005);
-      p.runTimer += dt;
-      if (p.runTimer > cycleSpeed) { p.runTimer = 0; p.runFrame = (p.runFrame + 1) % 4; }
-      // Dust particles occasionally when running fast.
-      if (window.BR && BR.Game && Math.random() < dt * 4 && BR.Game.getState && BR.Game.getState() === 'playing') {
-        BR.Particles.burst(p.x + p.w / 2 - 5, CFG.GROUND_Y - 2, 'rgba(180,200,230,0.4)', 1, 60, 0.2, 1, 200);
+      // During iframe (hurt period), keep showing 'hurt' state instead of
+      // immediately switching back to 'run'. This makes hit feedback visible.
+      if (p.iframe > 0) {
+        if (p.state !== 'hurt') { p.prevState = p.state; p.stateBlend = 0; }
+        p.state = 'hurt';
+        p.tiltTarget = -0.08; // slight lean back while hurt
+      } else {
+        if (p.state !== 'run') { p.prevState = p.state; p.stateBlend = 0; }
+        p.state = 'run';
+        var speedFactor = (window.BR && BR.Game ? BR.Game.getStats().dist : 0);
+        var cycleSpeed = Math.max(0.05, 0.09 - speedFactor * 0.000005);
+        p.runTimer += dt;
+        if (p.runTimer > cycleSpeed) { p.runTimer = 0; p.runFrame = (p.runFrame + 1) % 4; }
+        if (window.BR && BR.Game && Math.random() < dt * 4 && BR.Game.getState && BR.Game.getState() === 'playing') {
+          BR.Particles.burst(p.x + p.w / 2 - 5, CFG.GROUND_Y - 2, 'rgba(180,200,230,0.4)', 1, 60, 0.2, 1, 200);
+        }
+        p.tiltTarget = 0.05;
       }
-      // Tilt forward when running.
-      p.tiltTarget = 0.05;
     } else {
-      // State transition: 'jump' when rising, 'fall' when descending.
       var newState = (p.vy < 80) ? 'jump' : 'fall';
+      // During iframe in air, also show hurt.
+      if (p.iframe > 0) newState = 'hurt';
       if (newState !== p.state) { p.prevState = p.state; p.stateBlend = 0; p.state = newState; }
-      // Tilt back when jumping, forward when falling.
-      p.tiltTarget = (p.state === 'jump') ? -0.04 : 0.08;
+      p.tiltTarget = (p.state === 'jump') ? -0.04 : (p.state === 'hurt') ? -0.08 : 0.08;
     }
     // Smoothly blend tilt and state for fluid transitions.
     p.tilt += (p.tiltTarget - p.tilt) * Math.min(1, dt * 12);
@@ -134,11 +138,11 @@ BR.Player = (function () {
   function draw(p, ctx, time) {
     // If dead, still draw the hurt sprite for the death visual (fading out).
     if (!p.alive) {
-      // Fade out over 1 second after death.
+      // Fade out over 2 seconds after death — gives time for knockback bounce.
       if (!p._deathTime) p._deathTime = time;
       var deathAge = time - p._deathTime;
-      if (deathAge > 1.2) return; // fully faded out
-      var deathAlpha = Math.max(0, 1 - deathAge / 1.2);
+      if (deathAge > 2.0) return; // fully faded out
+      var deathAlpha = Math.max(0, 1 - deathAge / 2.0);
       ctx.save();
       ctx.globalAlpha = deathAlpha;
       var hurtSprite = BR.Assets.get('byte-hurt');

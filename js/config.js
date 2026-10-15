@@ -34,7 +34,7 @@ BR.CONFIG = {
   PARTICLE_CAP: 240,
 
   ENV_CHANGE_DIST: 800,
-  ENV_FADE_TIME: 1.6,
+  ENV_FADE_TIME: 2.2,  // longer crossfade (was 1.6) — less jarring "portal" feel
 
   PLAYER_W: 44,
   PLAYER_H: 54,
