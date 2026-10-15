@@ -78,14 +78,22 @@ BR.Environments = (function () {
               ctx.strokeStyle = 'rgba(71,123,255,0.25)';
               ctx.lineWidth = 1.5;
               ctx.strokeRect(x + 12, by, bw, bh);
+              // Windows — deterministic per tile index i and window position
+              // within the tile, so they don't flicker as the tile scrolls.
+              // col/row are relative to the building, not absolute screen pos.
+              var col = 0, row = 0;
               for (var wy = by + 14; wy < gy - 18; wy += 24) {
+                col = 0;
                 for (var wx = x + 22; wx < x + 12 + bw - 14; wx += 20) {
-                  var r = seeded(wx * 0.7 + wy * 1.3 + i);
+                  // Use tile index + relative col/row for stable window state.
+                  var r = seeded(i * 7.3 + col * 1.7 + row * 3.1 + 100);
                   if (r > 0.55) {
                     ctx.fillStyle = r > 0.85 ? 'rgba(255,209,102,0.75)' : 'rgba(66,232,224,0.45)';
                     ctx.fillRect(wx, wy, 8, 11);
                   }
+                  col++;
                 }
+                row++;
               }
             });
           }
@@ -234,14 +242,17 @@ BR.Environments = (function () {
               ctx.strokeStyle = 'rgba(152,101,255,0.35)';
               ctx.lineWidth = 1.5;
               ctx.strokeRect(rx, ry, rw, rh);
+              var rowIdx = 0;
               for (var sy = ry + 12; sy < gy - 14; sy += 18) {
                 ctx.fillStyle = 'rgba(40,30,80,0.9)';
                 ctx.fillRect(rx + 8, sy, rw - 16, 12);
-                var st = seeded(sy * 2.7 + i * 3);
+                // Use tile index + relative row for stable LED state.
+                var st = seeded(i * 4.1 + rowIdx * 2.7 + 50);
                 var lc = st > 0.8 ? 'rgba(255,107,122,0.9)' : st > 0.45 ? 'rgba(66,232,224,0.85)' : 'rgba(71,123,255,0.85)';
                 ctx.fillStyle = lc;
                 ctx.fillRect(rx + rw - 16, sy + 3, 5, 5);
                 ctx.fillRect(rx + rw - 26, sy + 3, 5, 5);
+                rowIdx++;
               }
               if (seeded(seed + 5) > 0.5) {
                 ctx.strokeStyle = 'rgba(71,123,255,0.2)';
