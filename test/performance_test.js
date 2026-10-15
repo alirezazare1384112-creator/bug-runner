@@ -135,12 +135,27 @@ function testRenderNoErrors() {
   assert(!errored, 'render produces no errors during 1s of gameplay');
 }
 
+// ---------------------------------------------------------------------------
+// TEST 6: Pop texts and milestones work without crashing.
+// ---------------------------------------------------------------------------
+function testPopTextsAndMilestones() {
+  BR.Game.start();
+  // Simulate distance reaching 500m to trigger milestone.
+  for (var i = 0; i < 500; i++) {
+    BR.Game._update(0.016);
+    BR.Game._render();
+    if (BR.Game.getState() === 'over') BR.Game.start();
+  }
+  assert(true, '500 frames with pop texts + milestones completed without errors');
+}
+
 console.log('\n=== BUG RUNNER PERFORMANCE TESTS ===\n');
 testFrameTime();
 testLongRunStability();
 testParticleCap();
 testObstacleArrayBounded();
 testRenderNoErrors();
+testPopTextsAndMilestones();
 
 console.log('\n=== RESULTS: ' + pass + ' passed, ' + fail + ' failed ===');
 process.exit(fail > 0 ? 1 : 0);

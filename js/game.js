@@ -14,11 +14,13 @@ BR.Game = (function () {
   var rafId = null;
   var shake = 0, flashColor = null, flashAlpha = 0;
   var speedLines = [];
+  var popTexts = []; // floating score/text indicators
   var godMode = false;
   var reducedFx = false;
   var onStateChange = null;
   // Input buffer: if player presses jump slightly before landing, queue it.
   var jumpBuffered = 0; // seconds remaining where buffered jump is valid
+  var lastMilestone = 0; // track distance milestones for celebration
 
   function init(cv) {
     canvas = cv;
@@ -68,7 +70,9 @@ BR.Game = (function () {
     flashColor = null;
     flashAlpha = 0;
     speedLines = [];
+    popTexts = [];
     jumpBuffered = 0;
+    lastMilestone = 0;
     BR.Particles.clear();
   }
 
@@ -222,7 +226,9 @@ BR.Game = (function () {
         if (aabb(pb, ob) && player.vy > 100) {
           obstacles.splice(i, 1);
           BR.Particles.burst(o.x + o.type.w / 2, o.y + o.type.h / 2, BR.Environments.get(envIndex).accent, 16, 220, 0.5, 3, 500);
+          BR.Particles.burst(o.x + o.type.w / 2, o.y + o.type.h / 2, '#FFD166', 6, 180, 0.4, 2.5, 400);
           score += 25;
+          addPopText(o.x + o.type.w / 2, o.y, '+25', '#FFD166');
           BR.Sfx.breakOb();
           continue;
         }
@@ -241,6 +247,10 @@ BR.Game = (function () {
         score += it.type.score;
         var col = it.type.kind === 'xp' ? '#FFD166' : it.type.kind === 'fragment' ? '#FFD166' : it.type.kind === 'byte' ? '#42E8E0' : it.type.kind === 'heart' ? '#FF6B7A' : '#477BFF';
         BR.Particles.burst(it.x + it.type.w / 2, it.y + it.type.h / 2, col, it.type.kind === 'bit' ? 6 : 14, 160, 0.45, 2.5, 0);
+        // Pop text showing the score gained.
+        var popText = '+' + it.type.score;
+        if (it.type.kind === 'heart') popText = '+HP';
+        addPopText(it.x + it.type.w / 2, it.y, popText, col);
         if (it.type.kind === 'xp' || it.type.kind === 'fragment') BR.Sfx.bigCollect();
         else if (it.type.kind === 'heart') BR.Sfx.bigCollect();
         else BR.Sfx.collect();
@@ -263,6 +273,17 @@ BR.Game = (function () {
 
     checkCollisions();
     BR.Particles.update(dt);
+    updatePopTexts(dt);
+
+    // Distance milestones — celebrate every 500m.
+    var currentMilestone = Math.floor(distance / 500);
+    if (currentMilestone > lastMilestone && currentMilestone > 0) {
+      lastMilestone = currentMilestone;
+      addPopText(CFG.W / 2, CFG.H / 2, currentMilestone * 500 + 'm!', '#42E8E0');
+      BR.Particles.burst(player.x + player.w / 2, player.y + player.h / 2, '#42E8E0', 12, 200, 0.6, 3, 0);
+      flashColor = '#42E8E0';
+      flashAlpha = 0.1;
+    }
 
     if (speed > CFG.MAX_SPEED * 0.72 && !reducedFx) {
       if (Math.random() < dt * 14) {
@@ -283,6 +304,43 @@ BR.Game = (function () {
   }
 
   function pbv() { return player; }
+
+  // Pop text — floating score indicators that rise and fade.
+  function addPopText(x, y, text, color) {
+    popTexts.push({
+      x: x, y: y, text: text, color: color || '#FFD166',
+      life: 0.9, maxLife: 0.9, vy: -60
+    });
+  }
+
+  function updatePopTexts(dt) {
+    for (var i = popTexts.length - 1; i >= 0; i--) {
+      var p = popTexts[i];
+      p.life -= dt;
+      p.y += p.vy * dt;
+      p.vy += 30 * dt; // slight gravity to slow the rise
+      if (p.life <= 0) popTexts.splice(i, 1);
+    }
+  }
+
+  function drawPopTexts(ctx) {
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    for (var i = 0; i < popTexts.length; i++) {
+      var p = popTexts[i];
+      var t = p.life / p.maxLife;
+      ctx.globalAlpha = Math.min(1, t * 1.5);
+      ctx.font = 'bold 16px "Segoe UI", Tahoma, sans-serif';
+      ctx.fillStyle = p.color;
+      ctx.shadowColor = p.color;
+      ctx.shadowBlur = 8;
+      ctx.fillText(p.text, p.x, p.y);
+      ctx.shadowBlur = 0;
+    }
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
 
   function obstacleNearSpawn(span) {
     var limit = CFG.W + span;
@@ -498,6 +556,9 @@ BR.Game = (function () {
 
     BR.Particles.draw(ctx);
 
+    // Draw pop texts on top of everything.
+    drawPopTexts(ctx);
+
     if (flashAlpha > 0 && flashColor) {
       ctx.globalAlpha = flashAlpha;
       ctx.fillStyle = flashColor;
@@ -513,6 +574,29 @@ BR.Game = (function () {
     }
     ctx.fillStyle = render._vg;
     ctx.fillRect(0, 0, W, H);
+
+    // Speed edge glow — when going fast, add a subtle accent glow on screen edges.
+    if (speed > CFG.MAX_SPEED * 0.6 && !reducedFx) {
+      var speedIntensity = Math.min(1, (speed - CFG.MAX_SPEED * 0.6) / (CFG.MAX_SPEED * 0.4));
+      var accentColor = BR.Environments.get(envIndex).accent;
+      // Parse accent color to rgba.
+      var edgeAlpha = 0.12 * speedIntensity;
+      ctx.fillStyle = accentColor;
+      ctx.globalAlpha = edgeAlpha;
+      // Top edge gradient
+      var topG = ctx.createLinearGradient(0, 0, 0, 60);
+      topG.addColorStop(0, accentColor);
+      topG.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = topG;
+      ctx.fillRect(0, 0, W, 60);
+      // Bottom edge gradient
+      var botG = ctx.createLinearGradient(0, H - 60, 0, H);
+      botG.addColorStop(0, 'rgba(0,0,0,0)');
+      botG.addColorStop(1, accentColor);
+      ctx.fillStyle = botG;
+      ctx.fillRect(0, H - 60, W, 60);
+      ctx.globalAlpha = 1;
+    }
 
     ctx.restore();
   }
@@ -555,7 +639,27 @@ BR.Game = (function () {
   function drawMenuRunner() {
     var px = 150;
     var py = CFG.GROUND_Y - CFG.PLAYER_H + Math.sin(time * 3) * 4;
-    var fake = { x: px, y: py, w: CFG.PLAYER_W, h: CFG.PLAYER_H, onGround: true, vy: 0, alive: true, iframe: 0, squash: 0, state: 'run' };
+    // Create a fake player with all required fields for proper animation.
+    if (!drawMenuRunner._fake) {
+      drawMenuRunner._fake = {
+        x: px, y: py, w: CFG.PLAYER_W, h: CFG.PLAYER_H,
+        onGround: true, vy: 0, alive: true, iframe: 0, squash: 0, squashTarget: 0,
+        tilt: 0, tiltTarget: 0, state: 'run', prevState: 'run', stateBlend: 1,
+        runFrame: 0, runTimer: 0, jumpPhase: '', hp: CFG.HP, jumps: 0,
+        _deathTime: 0
+      };
+    }
+    var fake = drawMenuRunner._fake;
+    fake.x = px;
+    fake.y = py;
+    // Animate run cycle.
+    fake.runTimer += 0.016;
+    if (fake.runTimer > 0.09) { fake.runTimer = 0; fake.runFrame = (fake.runFrame + 1) % 4; }
+    // Subtle breathing squash.
+    fake.squashTarget = Math.sin(time * 3) * 0.04;
+    fake.squash += (fake.squashTarget - fake.squash) * 0.1;
+    fake.tiltTarget = 0.03;
+    fake.tilt += (fake.tiltTarget - fake.tilt) * 0.1;
     BR.Player.shadow(fake, ctx);
     BR.Player.draw(fake, ctx, time);
   }
