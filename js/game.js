@@ -140,6 +140,14 @@ BR.Game = (function () {
     BR.Player.update(player, dt);
     if (!player.alive) { gameOver(); return; }
 
+    // Speed trail — particles trail behind player when going fast.
+    if (speed > CFG.BASE_SPEED * 1.3 && !reducedFx) {
+      var trailColor = BR.Environments.get(envIndex).accent;
+      if (Math.random() < dt * 18) {
+        BR.Particles.trail(player.x + 4, player.y + player.h / 2 + (Math.random() - 0.5) * 10, trailColor);
+      }
+    }
+
     // Consume buffered jump if player is now on the ground (just landed).
     if (jumpBuffered > 0) {
       jumpBuffered -= dt;

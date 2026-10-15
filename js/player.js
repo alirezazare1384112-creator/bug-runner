@@ -81,14 +81,24 @@ BR.Player = (function () {
     // Smoothly return squash to 0 (avoid wobble).
     p.squash += (0 - p.squash) * Math.min(1, dt * 8);
 
+    // Animation state machine — faster run cycle when going faster.
     if (p.onGround) {
       p.state = 'run';
+      // Run cycle speed scales with game speed for visual feedback.
+      // Faster game = faster legs. Cycle is ~0.09s per frame at base,
+      // speeds up to ~0.05s per frame at max speed.
+      var speedFactor = (window.BR && BR.Game ? BR.Game.getStats().dist : 0);
+      var cycleSpeed = Math.max(0.05, 0.09 - speedFactor * 0.000005);
       p.runTimer += dt;
-      if (p.runTimer > 0.09) { p.runTimer = 0; p.runFrame = (p.runFrame + 1) % 4; }
+      if (p.runTimer > cycleSpeed) { p.runTimer = 0; p.runFrame = (p.runFrame + 1) % 4; }
+      // Dust particles occasionally when running fast.
+      if (window.BR && BR.Game && Math.random() < dt * 4 && BR.Game.getState && BR.Game.getState() === 'playing') {
+        BR.Particles.burst(p.x + p.w / 2 - 5, CFG.GROUND_Y - 2, 'rgba(180,200,230,0.4)', 1, 60, 0.2, 1, 200);
+      }
     } else {
-      // State transition: 'jump' when rising (vy < 0), 'fall' when descending (vy > 0).
-      // Small buffer near apex (|vy| < 50) keeps 'jump' for visual continuity.
-      p.state = (p.vy < 50) ? 'jump' : 'fall';
+      // State transition: 'jump' when rising, 'fall' when descending.
+      // Small buffer near apex (|vy| < 80) keeps 'jump' for visual continuity.
+      p.state = (p.vy < 80) ? 'jump' : 'fall';
     }
   }
 
@@ -112,7 +122,8 @@ BR.Player = (function () {
 
   function draw(p, ctx, time) {
     if (!p.alive) return;
-    if (p.iframe > 0 && Math.floor(time * 14) % 2 === 0) return;
+    // Iframe flicker — but make it less aggressive (every 3rd frame skip instead of 2nd)
+    if (p.iframe > 0 && Math.floor(time * 12) % 3 === 0) return;
 
     var sprite = null;
     if (p.state === 'run') {
@@ -126,17 +137,23 @@ BR.Player = (function () {
     var cx = p.x + p.w / 2;
     var by = p.y + p.h;
     ctx.translate(cx, by);
+
+    // Tilt forward slightly when running, lean back when hurt, lean forward when jumping.
+    var tiltRad = 0;
+    if (p.state === 'run') tiltRad = 0.05; // slight forward lean
+    else if (p.state === 'jump') tiltRad = -0.04; // slight back lean (looking up)
+    else if (p.state === 'fall') tiltRad = 0.08; // forward lean (diving down)
+    ctx.rotate(tiltRad);
+
     var sq = p.squash;
     ctx.scale(1 + sq * 0.5, 1 - sq * 0.6);
 
     if (sprite) {
       // Scale sprite to fit player's logical w × h while preserving aspect ratio.
-      // Use the larger of (sprite's natural fit to p.w) and (sprite's natural fit to p.h)
-      // so the sprite is readable, capped at 1.5× player h to avoid covering too much.
+      // Target box slightly larger than the hitbox so character is visible.
       var sw = sprite.width;
       var sh = sprite.height;
       var sAspect = sw / sh;
-      // Target box: a bit larger than the hitbox so character is visible.
       var targetW = p.w + 16;
       var targetH = p.h + 16;
       var tAspect = targetW / targetH;
