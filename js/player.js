@@ -33,30 +33,37 @@ BR.Player = (function () {
       alive: true,
       state: 'run',
       prevState: 'run',
-      stateBlend: 1, // 0..1, smoothly transitions between prevState and state
+      stateBlend: 1,
       runFrame: 0,
       runTimer: 0,
       squash: 0,
+      squashTarget: 0,
       tilt: 0,
       tiltTarget: 0,
+      // Jump animation phases: 'anticipate' | 'rise' | 'apex' | 'fall' | 'land'
+      jumpPhase: '',
+      jumpPhaseTimer: 0,
       _deathTime: 0
     };
   }
 
   function jump(p) {
     if (!p.alive) return false;
-    if (p.onGround) {
-      // Single jump — apply velocity directly for responsive feel.
-      p.vy = CFG.JUMP_VEL;
-      p.onGround = false;
+    if (p.onGround || p.jumpPhase === 'anticipate') {
+      // Single jump — with anticipation: brief crouch before launching.
+      // The actual velocity is applied after a short delay (handled in update).
+      p.jumpPhase = 'anticipate';
+      p.jumpPhaseTimer = 0.08; // 80ms anticipation crouch
+      p.squashTarget = 0.25; // squash down (compress) for anticipation
       p.jumps = 1;
-      p.squash = -0.18; // gentle stretch upward
+      p._pendingJumpVel = CFG.JUMP_VEL;
       return 'single';
     } else if (p.jumps < 2) {
-      // Double jump — slightly weaker but refreshes upward velocity.
+      // Double jump — instant, with flip stretch and burst.
       p.vy = CFG.DOUBLE_JUMP_VEL;
       p.jumps = 2;
-      p.squash = -0.15;
+      p.squashTarget = -0.28; // strong stretch upward for double jump
+      p.jumpPhase = 'rise';
       return 'double';
     }
     return false;
@@ -64,53 +71,123 @@ BR.Player = (function () {
 
   function update(p, dt) {
     if (!p.alive) return;
-    p.vy += CFG.GRAVITY * dt;
-    if (p.vy > CFG.MAX_FALL) p.vy = CFG.MAX_FALL;
+
+    // --- Jump phase machine for realistic animation ---
+    if (p.jumpPhase === 'anticipate') {
+      // Hold position during anticipation crouch.
+      p.jumpPhaseTimer -= dt;
+      if (p.jumpPhaseTimer <= 0) {
+        // Launch!
+        p.vy = p._pendingJumpVel || CFG.JUMP_VEL;
+        p._pendingJumpVel = 0;
+        p.squashTarget = -0.22; // stretch upward on launch
+        p.jumpPhase = 'rise';
+        p.jumpPhaseTimer = 0;
+        p.onGround = false; // now airborne
+      } else {
+        // Stay on ground during anticipation.
+        p.vy = 0;
+      }
+    } else {
+      // Normal physics.
+      p.vy += CFG.GRAVITY * dt;
+      if (p.vy > CFG.MAX_FALL) p.vy = CFG.MAX_FALL;
+    }
     p.y += p.vy * dt;
 
     var groundTop = CFG.GROUND_Y - p.h;
-    if (p.y >= groundTop) {
-      if (!p.onGround && p.vy > 150) {
-        // Landing — gentle squash only if we fell meaningfully.
-        p.squash = 0.22;
-        BR.Particles.burst(p.x + p.w / 2, CFG.GROUND_Y - 2, 'rgba(234,242,255,0.7)', 5, 90, 0.3, 2, 300);
+    if (p.y >= groundTop && p.jumpPhase !== 'anticipate') {
+      var wasInAir = !p.onGround;
+      if (wasInAir && p.vy > 100) {
+        // Landing — strong squash based on impact velocity.
+        var impactStrength = Math.min(0.5, p.vy / 2000);
+        p.squashTarget = 0.25 + impactStrength * 0.25;
+        // Landing dust — more particles for harder landings.
+        var dustCount = Math.min(12, 4 + Math.floor(p.vy / 100));
+        BR.Particles.burst(p.x + p.w / 2, CFG.GROUND_Y - 2, 'rgba(234,242,255,0.7)', dustCount, 90 + p.vy * 0.1, 0.3, 2, 300);
+        p.jumpPhase = 'land';
+        p.jumpPhaseTimer = 0.12; // brief landing recovery
       }
       p.y = groundTop;
       p.vy = 0;
       p.onGround = true;
-      p.jumps = 0;
+      if (p.jumpPhase !== 'land' && p.jumpPhase !== 'anticipate') {
+        p.jumps = 0;
+        p.jumpPhase = '';
+      }
+    }
+
+    // Landing recovery — return to run after a brief pause.
+    if (p.jumpPhase === 'land') {
+      p.jumpPhaseTimer -= dt;
+      if (p.jumpPhaseTimer <= 0) {
+        p.jumpPhase = '';
+        p.squashTarget = 0;
+        p.jumps = 0;
+      }
     }
 
     if (p.iframe > 0) p.iframe -= dt;
-    // Smoothly return squash to 0 (avoid wobble).
-    p.squash += (0 - p.squash) * Math.min(1, dt * 8);
 
-    // Animation state machine — faster run cycle when going faster.
+    // Smoothly lerp squash toward target (organic motion, no snap).
+    p.squash += (p.squashTarget - p.squash) * Math.min(1, dt * 14);
+    // After reaching target, decay target back to 0 (so squash returns to neutral).
+    if (Math.abs(p.squash - p.squashTarget) < 0.02 && p.squashTarget !== 0) {
+      if (p.jumpPhase !== 'anticipate' && p.jumpPhase !== 'land') {
+        p.squashTarget = 0;
+      }
+    }
+
+    // --- Animation state machine ---
     if (p.onGround) {
-      // During iframe (hurt period), keep showing 'hurt' state instead of
-      // immediately switching back to 'run'. This makes hit feedback visible.
       if (p.iframe > 0) {
         if (p.state !== 'hurt') { p.prevState = p.state; p.stateBlend = 0; }
         p.state = 'hurt';
-        p.tiltTarget = -0.08; // slight lean back while hurt
+        p.tiltTarget = -0.08;
       } else {
-        if (p.state !== 'run') { p.prevState = p.state; p.stateBlend = 0; }
+        if (p.state !== 'run' && p.jumpPhase !== 'anticipate' && p.jumpPhase !== 'land') {
+          p.prevState = p.state; p.stateBlend = 0;
+        }
         p.state = 'run';
         var speedFactor = (window.BR && BR.Game ? BR.Game.getStats().dist : 0);
         var cycleSpeed = Math.max(0.05, 0.09 - speedFactor * 0.000005);
-        p.runTimer += dt;
-        if (p.runTimer > cycleSpeed) { p.runTimer = 0; p.runFrame = (p.runFrame + 1) % 4; }
-        if (window.BR && BR.Game && Math.random() < dt * 4 && BR.Game.getState && BR.Game.getState() === 'playing') {
+        // Pause run cycle during anticipation/landing for cleaner animation.
+        if (p.jumpPhase === '') {
+          p.runTimer += dt;
+          if (p.runTimer > cycleSpeed) { p.runTimer = 0; p.runFrame = (p.runFrame + 1) % 4; }
+        }
+        if (window.BR && BR.Game && Math.random() < dt * 4 && BR.Game.getState && BR.Game.getState() === 'playing' && p.jumpPhase === '') {
           BR.Particles.burst(p.x + p.w / 2 - 5, CFG.GROUND_Y - 2, 'rgba(180,200,230,0.4)', 1, 60, 0.2, 1, 200);
         }
         p.tiltTarget = 0.05;
       }
     } else {
-      var newState = (p.vy < 80) ? 'jump' : 'fall';
-      // During iframe in air, also show hurt.
-      if (p.iframe > 0) newState = 'hurt';
+      // In air — determine phase based on velocity.
+      var newState;
+      if (p.vy < -100) {
+        newState = 'jump'; // rising
+        p.jumpPhase = 'rise';
+        // Stretch while rising fast.
+        p.squashTarget = Math.max(-0.3, p.vy / 3000);
+      } else if (p.vy < 100) {
+        newState = 'jump'; // near apex
+        p.jumpPhase = 'apex';
+        // Near apex — return to neutral (slight squash for hang time feel).
+        p.squashTarget = 0.05;
+      } else {
+        newState = 'fall'; // descending
+        p.jumpPhase = 'fall';
+        // Mild stretch downward while falling.
+        p.squashTarget = Math.min(0.15, p.vy / 5000);
+      }
+      // Tilt based on velocity — lean back when rising, forward when falling.
+      // This makes the tilt feel dynamic, not just state-based.
+      p.tiltTarget = Math.max(-0.15, Math.min(0.15, p.vy / 6000));
+      if (p.iframe > 0) {
+        newState = 'hurt';
+        p.tiltTarget = -0.08;
+      }
       if (newState !== p.state) { p.prevState = p.state; p.stateBlend = 0; p.state = newState; }
-      p.tiltTarget = (p.state === 'jump') ? -0.04 : (p.state === 'hurt') ? -0.08 : 0.08;
     }
     // Smoothly blend tilt and state for fluid transitions.
     p.tilt += (p.tiltTarget - p.tilt) * Math.min(1, dt * 12);

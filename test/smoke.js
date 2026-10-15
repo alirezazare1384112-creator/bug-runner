@@ -55,8 +55,9 @@ assert(BR.Particles.count() === 0, 'particles cleared');
 const p = BR.Player.create();
 assert(p.hp === CFG.HP && p.alive, 'player created full hp');
 assert(BR.Player.jump(p) === 'single', 'single jump from ground');
-BR.Player.update(p, 0.016);
-assert(!p.onGround, 'player airborne after jump');
+// Run several frames to pass through anticipation phase (80ms).
+for (let i = 0; i < 10; i++) BR.Player.update(p, 0.016);
+assert(!p.onGround, 'player airborne after jump (post-anticipation)');
 assert(BR.Player.jump(p) === 'double', 'double jump allowed');
 for (let i = 0; i < 200; i++) BR.Player.update(p, 0.016);
 assert(p.onGround, 'player lands after gravity');

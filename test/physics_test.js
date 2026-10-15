@@ -106,9 +106,13 @@ function testJumpCycleSimulation() {
   var p = BR.Player.create();
   var startY = p.y;
   BR.Player.jump(p);
-  assert(p.vy === CFG.JUMP_VEL, 'after jump: vy = JUMP_VEL (' + CFG.JUMP_VEL + ')');
-  assert(!p.onGround, 'after jump: not on ground');
   assert(p.jumps === 1, 'after jump: jumps = 1');
+  // Run through anticipation phase (80ms ≈ 5 frames) — vy should be JUMP_VEL at launch.
+  // After 5 frames (80ms), anticipation ends and vy is set to JUMP_VEL.
+  for (var i = 0; i < 5; i++) BR.Player.update(p, 0.016);
+  // Right after launch, vy should be exactly JUMP_VEL (before gravity applies next frame).
+  assert(p.vy === CFG.JUMP_VEL, 'after anticipation: vy = JUMP_VEL (' + CFG.JUMP_VEL + ')');
+  assert(!p.onGround, 'after anticipation: not on ground');
 
   // Simulate physics until landing
   var dt = 0.016;
@@ -133,8 +137,8 @@ function testDoubleJump() {
   var p = BR.Player.create();
   var startY = p.y;
   BR.Player.jump(p); // first jump
-  // Simulate a few frames
-  for (var i = 0; i < 5; i++) BR.Player.update(p, 0.016);
+  // Run through anticipation phase and rise a bit.
+  for (var i = 0; i < 10; i++) BR.Player.update(p, 0.016);
   var yAfterFirstJump = p.y;
   BR.Player.jump(p); // double jump
   assert(p.jumps === 2, 'double jump sets jumps = 2');
@@ -156,6 +160,8 @@ function testDoubleJump() {
 function testNoTripleJump() {
   var p = BR.Player.create();
   BR.Player.jump(p); // single
+  // Run through anticipation to get airborne.
+  for (var i = 0; i < 10; i++) BR.Player.update(p, 0.016);
   BR.Player.jump(p); // double
   var r = BR.Player.jump(p); // should fail
   assert(r === false, 'third jump attempt returns false');
@@ -231,11 +237,15 @@ function testStateTransitions() {
   var p = BR.Player.create();
   assert(p.state === 'run', 'initial state = run');
   BR.Player.jump(p);
-  // Simulate until fall state
+  // Simulate until fall state — run enough frames to pass through
+  // anticipation (80ms), rise, apex, and into fall.
   var fellAt = -1;
-  for (var i = 0; i < 200 && !p.onGround; i++) {
+  var landed = false;
+  for (var i = 0; i < 200 && !landed; i++) {
     BR.Player.update(p, 0.016);
     if (p.state === 'fall' && fellAt < 0) fellAt = i;
+    // Stop after landing (which happens after fall).
+    if (fellAt >= 0 && p.onGround && p.jumpPhase === '') landed = true;
   }
   assert(fellAt > 0, 'state transitions to "fall" during descent (frame ' + fellAt + ')');
   assert(p.state === 'run', 'state returns to "run" after landing');
