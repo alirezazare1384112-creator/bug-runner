@@ -17,9 +17,20 @@ BR.Environments = (function () {
   }
 
   function drawSky(ctx, top, bottom, w, h) {
-    var g = ctx.createLinearGradient(0, 0, 0, h);
-    g.addColorStop(0, top);
-    g.addColorStop(1, bottom);
+    // Cache gradients per (top,bottom) pair to avoid recreating every frame.
+    // Gradient creation is expensive; only do it once per unique color combo.
+    if (!drawSky._cache) drawSky._cache = {};
+    var key = top + '|' + bottom + '|' + h;
+    var g = drawSky._cache[key];
+    if (!g) {
+      g = ctx.createLinearGradient(0, 0, 0, h);
+      g.addColorStop(0, top);
+      g.addColorStop(1, bottom);
+      drawSky._cache[key] = g;
+      // Cap cache size to prevent memory leak
+      var keys = Object.keys(drawSky._cache);
+      if (keys.length > 16) delete drawSky._cache[keys[0]];
+    }
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, w, h);
   }
@@ -469,5 +480,5 @@ BR.Environments = (function () {
     }
   }
 
-  return { get: get, count: count, drawGround: drawGround };
+  return { get: get, count: count, drawGround: drawGround, drawSky: drawSky };
 })();

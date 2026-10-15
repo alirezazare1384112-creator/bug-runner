@@ -316,8 +316,13 @@ BR.Game = (function () {
   function checkCollisions() {
     if (player.iframe > 0 || !player.alive || godMode) return;
     var pb = BR.Player.hitbox(player);
+    // Only check obstacles within the player's viewport x range for performance.
+    // Player is at x=150, so we only need obstacles in roughly 0..CFG.W range.
+    var pRight = pb.x + pb.w;
     for (var i = 0; i < obstacles.length; i++) {
       var o = obstacles[i];
+      // Skip if obstacle is fully off-screen left or right of player.
+      if (o.x + o.type.w < pb.x - 20 || o.x > pRight + 20) continue;
       var ob = { x: o.x + o.type.box.x, y: o.y + o.type.box.y, w: o.type.box.w, h: o.type.box.h };
       if (aabb(pb, ob)) {
         var r = BR.Player.hurt(player);
@@ -378,11 +383,8 @@ BR.Game = (function () {
       var k = envFade / CFG.ENV_FADE_TIME;
       drawSkyPair(prevEnv, env, k);
     } else {
-      var g = ctx.createLinearGradient(0, 0, 0, H);
-      g.addColorStop(0, skyTop);
-      g.addColorStop(1, skyBot);
-      ctx.fillStyle = g;
-      ctx.fillRect(0, 0, W, H);
+      // Use cached gradient from Environments.drawSky
+      BR.Environments.drawSky(ctx, skyTop, skyBot, W, H);
     }
 
     drawLayers(env, 1);
@@ -398,9 +400,11 @@ BR.Game = (function () {
     BR.Environments.drawGround(ctx, env, scrollX, W, H, gy);
 
     var i;
+    // Cache sprite references per obstacle/item to avoid hash lookups every frame.
     for (i = 0; i < items.length; i++) {
       var it = items[i];
-      BR.Items.drawSprite(ctx, it.type, it.x, it.y, time + it.t0, BR.Assets.get('item-' + it.type.id));
+      if (!it._sprite) it._sprite = BR.Assets.get('item-' + it.type.id);
+      BR.Items.drawSprite(ctx, it.type, it.x, it.y, time + it.t0, it._sprite);
     }
 
     if (player) {
@@ -409,7 +413,8 @@ BR.Game = (function () {
 
     for (i = 0; i < obstacles.length; i++) {
       var o = obstacles[i];
-      BR.Obstacles.drawSprite(ctx, o.type, o.x, o.y, o.t, BR.Assets.get('ob-' + o.type.id));
+      if (!o._sprite) o._sprite = BR.Assets.get('ob-' + o.type.id);
+      BR.Obstacles.drawSprite(ctx, o.type, o.x, o.y, o.t, o._sprite);
     }
 
     if (player && (state === 'playing' || state === 'paused' || state === 'over')) {
@@ -421,14 +426,14 @@ BR.Game = (function () {
     if (speedLines.length) {
       ctx.strokeStyle = 'rgba(234,242,255,0.14)';
       ctx.lineWidth = 2;
+      ctx.beginPath();
       for (i = 0; i < speedLines.length; i++) {
         var sl = speedLines[i];
         ctx.globalAlpha = Math.min(1, sl.life * 2);
-        ctx.beginPath();
         ctx.moveTo(sl.x, sl.y);
         ctx.lineTo(sl.x + sl.len, sl.y);
-        ctx.stroke();
       }
+      ctx.stroke();
       ctx.globalAlpha = 1;
     }
 
@@ -441,26 +446,39 @@ BR.Game = (function () {
       ctx.globalAlpha = 1;
     }
 
-    var vg = ctx.createRadialGradient(W / 2, H / 2, H * 0.45, W / 2, H / 2, H * 0.85);
-    vg.addColorStop(0, 'rgba(0,0,0,0)');
-    vg.addColorStop(1, 'rgba(0,0,0,0.35)');
-    ctx.fillStyle = vg;
+    // Vignette — cached gradient (only created once).
+    if (!render._vg) {
+      render._vg = ctx.createRadialGradient(W / 2, H / 2, H * 0.45, W / 2, H / 2, H * 0.85);
+      render._vg.addColorStop(0, 'rgba(0,0,0,0)');
+      render._vg.addColorStop(1, 'rgba(0,0,0,0.35)');
+    }
+    ctx.fillStyle = render._vg;
     ctx.fillRect(0, 0, W, H);
 
     ctx.restore();
   }
 
   function drawSkyPair(a, b, k) {
-    var g = ctx.createLinearGradient(0, 0, 0, CFG.H);
-    g.addColorStop(0, a.sky[0]);
-    g.addColorStop(1, a.sky[1]);
-    ctx.fillStyle = g;
+    // Cache both gradients per color pair to avoid recreating every frame.
+    if (!drawSkyPair._cache) drawSkyPair._cache = {};
+    var keyA = a.sky[0] + '|' + a.sky[1];
+    var keyB = b.sky[0] + '|' + b.sky[1];
+    if (!drawSkyPair._cache[keyA]) {
+      var ga = ctx.createLinearGradient(0, 0, 0, CFG.H);
+      ga.addColorStop(0, a.sky[0]);
+      ga.addColorStop(1, a.sky[1]);
+      drawSkyPair._cache[keyA] = ga;
+    }
+    if (!drawSkyPair._cache[keyB]) {
+      var gb = ctx.createLinearGradient(0, 0, 0, CFG.H);
+      gb.addColorStop(0, b.sky[0]);
+      gb.addColorStop(1, b.sky[1]);
+      drawSkyPair._cache[keyB] = gb;
+    }
+    ctx.fillStyle = drawSkyPair._cache[keyA];
     ctx.fillRect(0, 0, CFG.W, CFG.H);
     ctx.globalAlpha = 1 - k;
-    var g2 = ctx.createLinearGradient(0, 0, 0, CFG.H);
-    g2.addColorStop(0, b.sky[0]);
-    g2.addColorStop(1, b.sky[1]);
-    ctx.fillStyle = g2;
+    ctx.fillStyle = drawSkyPair._cache[keyB];
     ctx.fillRect(0, 0, CFG.W, CFG.H);
     ctx.globalAlpha = 1;
   }

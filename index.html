@@ -55,10 +55,21 @@
   <div id="overlay-over" class="overlay hidden">
     <div class="panel">
       <h2 id="over-title">بازی تمام شد</h2>
+      <div class="medal-row">
+        <div id="over-medal" class="medal"></div>
+        <div class="medal-info">
+          <div id="over-rank" class="rank">—</div>
+          <div id="over-rank-desc" class="rank-desc">—</div>
+        </div>
+      </div>
       <div class="result-grid">
-        <div class="result"><span class="result-label">امتیاز</span><span id="final-score" class="result-value">0</span></div>
+        <div class="result primary"><span class="result-label">امتیاز</span><span id="final-score" class="result-value">0</span></div>
         <div class="result"><span class="result-label">مسافت</span><span id="final-dist" class="result-value">0m</span></div>
         <div class="result"><span class="result-label">بیت‌ها</span><span id="final-bits" class="result-value">0</span></div>
+      </div>
+      <div class="best-row">
+        <span class="best-label">بهترین رکورد:</span>
+        <span id="best-ever" class="best-value">0</span>
       </div>
       <p id="new-record" class="record hidden">رکورد جدید!</p>
       <div class="menu-row">

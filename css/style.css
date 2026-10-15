@@ -205,8 +205,61 @@ html, body {
 
 .result-grid { display: flex; gap: 22px; justify-content: center; margin: 22px 0 6px; }
 .result { display: flex; flex-direction: column; gap: 4px; }
+.result.primary { gap: 6px; }
 .result-label { font-size: 12px; opacity: 0.65; }
 .result-value { font-size: 26px; font-weight: 800; color: var(--teal); font-variant-numeric: tabular-nums; }
+.result.primary .result-value { font-size: 34px; color: var(--yellow); text-shadow: 0 0 16px rgba(255, 209, 102, 0.5); }
+
+.medal-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin: 16px 0 4px;
+}
+.medal {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 36px;
+  font-weight: 900;
+  border: 4px solid;
+  box-shadow: 0 0 24px;
+  position: relative;
+}
+.medal::after {
+  content: '';
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+}
+.medal.bronze { background: linear-gradient(135deg, #CD7F32, #8B4513); border-color: #E8965A; box-shadow: 0 0 24px rgba(205, 127, 50, 0.5); color: #FFF; }
+.medal.silver { background: linear-gradient(135deg, #C0C0C0, #808080); border-color: #E0E0E0; box-shadow: 0 0 24px rgba(192, 192, 192, 0.6); color: #FFF; }
+.medal.gold { background: linear-gradient(135deg, #FFD700, #B8860B); border-color: #FFEC8B; box-shadow: 0 0 32px rgba(255, 215, 0, 0.7); color: #4A2C00; }
+.medal.platinum { background: linear-gradient(135deg, #E5E4E2, #A9A9A9); border-color: #FFFFFF; box-shadow: 0 0 36px rgba(229, 228, 226, 0.8); color: #2A2A2A; }
+.medal.diamond { background: linear-gradient(135deg, #B9F2FF, #50C8E8); border-color: #E0FFFF; box-shadow: 0 0 40px rgba(185, 242, 255, 0.9); color: #1A4A5C; }
+
+.medal-info { text-align: left; }
+.rank { font-size: 18px; font-weight: 800; color: var(--ink); }
+.rank-desc { font-size: 12px; opacity: 0.7; margin-top: 2px; }
+
+.best-row {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin: 12px 0 4px;
+  font-size: 13px;
+  opacity: 0.8;
+}
+.best-label { opacity: 0.7; }
+.best-value { font-weight: 700; color: var(--yellow); font-variant-numeric: tabular-nums; }
 
 .record {
   color: var(--yellow);

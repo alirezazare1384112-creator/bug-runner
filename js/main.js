@@ -71,6 +71,24 @@
       $('final-score').textContent = data.score;
       $('final-dist').textContent = data.dist + 'm';
       $('final-bits').textContent = data.bits;
+
+      // Compute rank/medal based on score.
+      var rankInfo = computeRank(data.score);
+      var medalEl = $('over-medal');
+      medalEl.className = 'medal ' + rankInfo.medal;
+      medalEl.textContent = rankInfo.symbol;
+      $('over-rank').textContent = rankInfo.title;
+      $('over-rank-desc').textContent = rankInfo.desc;
+
+      // Best ever score (persists in localStorage).
+      var bestEver = Number(localStorage.getItem('br-best-ever') || 0);
+      var isNewBestEver = data.score > bestEver;
+      if (isNewBestEver) {
+        bestEver = data.score;
+        localStorage.setItem('br-best-ever', String(bestEver));
+      }
+      $('best-ever').textContent = bestEver;
+
       var isRecord = data.score > best;
       if (isRecord) {
         best = data.score;
@@ -179,4 +197,21 @@
   window.addEventListener('beforeunload', function () {
     clearInterval(envWatcher);
   });
+
+  // ---- Rank/Medal computation ----
+  // Returns { medal, symbol, title, desc } based on score thresholds.
+  // Tiers: bronze < 500, silver < 2000, gold < 5000, platinum < 12000, diamond >= 12000.
+  function computeRank(score) {
+    if (score >= 12000) {
+      return { medal: 'diamond', symbol: '◆', title: ' Debugger Master', desc: 'حرفه‌ای واقعی!' };
+    } else if (score >= 5000) {
+      return { medal: 'platinum', symbol: '★', title: 'Senior Dev', desc: 'بزرگ شدی!' };
+    } else if (score >= 2000) {
+      return { medal: 'gold', symbol: '★', title: 'Mid Dev', desc: 'آفرین!' };
+    } else if (score >= 500) {
+      return { medal: 'silver', symbol: '★', title: 'Junior Dev', desc: 'خوب بود!' };
+    } else {
+      return { medal: 'bronze', symbol: '★', title: 'Intern', desc: 'دوباره تلاش کن!' };
+    }
+  }
 })();

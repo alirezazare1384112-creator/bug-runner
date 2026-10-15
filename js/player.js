@@ -32,10 +32,13 @@ BR.Player = (function () {
       iframe: 0,
       alive: true,
       state: 'run',
+      prevState: 'run',
+      stateBlend: 1, // 0..1, smoothly transitions between prevState and state
       runFrame: 0,
       runTimer: 0,
       squash: 0,
-      tilt: 0
+      tilt: 0,
+      tiltTarget: 0
     };
   }
 
@@ -83,10 +86,10 @@ BR.Player = (function () {
 
     // Animation state machine — faster run cycle when going faster.
     if (p.onGround) {
+      // Track state transitions for smooth blending.
+      if (p.state !== 'run') { p.prevState = p.state; p.stateBlend = 0; }
       p.state = 'run';
       // Run cycle speed scales with game speed for visual feedback.
-      // Faster game = faster legs. Cycle is ~0.09s per frame at base,
-      // speeds up to ~0.05s per frame at max speed.
       var speedFactor = (window.BR && BR.Game ? BR.Game.getStats().dist : 0);
       var cycleSpeed = Math.max(0.05, 0.09 - speedFactor * 0.000005);
       p.runTimer += dt;
@@ -95,11 +98,18 @@ BR.Player = (function () {
       if (window.BR && BR.Game && Math.random() < dt * 4 && BR.Game.getState && BR.Game.getState() === 'playing') {
         BR.Particles.burst(p.x + p.w / 2 - 5, CFG.GROUND_Y - 2, 'rgba(180,200,230,0.4)', 1, 60, 0.2, 1, 200);
       }
+      // Tilt forward when running.
+      p.tiltTarget = 0.05;
     } else {
       // State transition: 'jump' when rising, 'fall' when descending.
-      // Small buffer near apex (|vy| < 80) keeps 'jump' for visual continuity.
-      p.state = (p.vy < 80) ? 'jump' : 'fall';
+      var newState = (p.vy < 80) ? 'jump' : 'fall';
+      if (newState !== p.state) { p.prevState = p.state; p.stateBlend = 0; p.state = newState; }
+      // Tilt back when jumping, forward when falling.
+      p.tiltTarget = (p.state === 'jump') ? -0.04 : 0.08;
     }
+    // Smoothly blend tilt and state for fluid transitions.
+    p.tilt += (p.tiltTarget - p.tilt) * Math.min(1, dt * 12);
+    p.stateBlend = Math.min(1, p.stateBlend + dt * 8);
   }
 
   function hurt(p) {
@@ -138,19 +148,13 @@ BR.Player = (function () {
     var by = p.y + p.h;
     ctx.translate(cx, by);
 
-    // Tilt forward slightly when running, lean back when hurt, lean forward when jumping.
-    var tiltRad = 0;
-    if (p.state === 'run') tiltRad = 0.05; // slight forward lean
-    else if (p.state === 'jump') tiltRad = -0.04; // slight back lean (looking up)
-    else if (p.state === 'fall') tiltRad = 0.08; // forward lean (diving down)
-    ctx.rotate(tiltRad);
+    // Use smoothed tilt value (already lerped in update).
+    ctx.rotate(p.tilt);
 
     var sq = p.squash;
     ctx.scale(1 + sq * 0.5, 1 - sq * 0.6);
 
     if (sprite) {
-      // Scale sprite to fit player's logical w × h while preserving aspect ratio.
-      // Target box slightly larger than the hitbox so character is visible.
       var sw = sprite.width;
       var sh = sprite.height;
       var sAspect = sw / sh;
@@ -165,7 +169,6 @@ BR.Player = (function () {
         dh = targetH;
         dw = targetH * sAspect;
       }
-      // Bottom-center anchor: drawImage at (-dw/2, -dh).
       ctx.drawImage(sprite, -dw / 2, -dh, dw, dh);
     } else {
       drawPlaceholder(ctx, p, time);
