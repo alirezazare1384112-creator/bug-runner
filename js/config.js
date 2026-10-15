@@ -6,21 +6,27 @@ BR.CONFIG = {
 
   GROUND_Y: 440,
 
-  GRAVITY: 2400,
-  JUMP_VEL: -820,
-  DOUBLE_JUMP_VEL: -700,
+  // Physics — tuned for forgiving runner feel.
+  // Jump height ~ 220px (clears all obstacles, max stack-overflow 150px).
+  // Total air time ~ 0.85s (responsive controls, ample window).
+  GRAVITY: 2000,
+  JUMP_VEL: -940,
+  DOUBLE_JUMP_VEL: -820,
   MAX_FALL: 1300,
 
-  BASE_SPEED: 340,
-  MAX_SPEED: 760,
-  SPEED_RAMP: 14,
+  // Speed — gentler ramp so player has time to react.
+  BASE_SPEED: 320,
+  MAX_SPEED: 620,
+  SPEED_RAMP: 8,
 
   HP: 3,
-  IFRAME_TIME: 1.2,
+  IFRAME_TIME: 1.5,
 
-  SPAWN_START: 1.9,
-  SPAWN_MIN: 0.72,
-  SPAWN_DECAY: 0.012,
+  // Obstacle spawn — wider gaps so single jump can always clear.
+  // Min gap (1.3s) guarantees enough time to land a jump + react before next.
+  SPAWN_START: 2.6,
+  SPAWN_MIN: 1.3,
+  SPAWN_DECAY: 0.008,
 
   ITEM_SPAWN_EVERY: 3.4,
   XP_SPAWN_EVERY: 26,

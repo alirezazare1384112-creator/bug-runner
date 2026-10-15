@@ -17,6 +17,8 @@ BR.Game = (function () {
   var godMode = false;
   var reducedFx = false;
   var onStateChange = null;
+  // Input buffer: if player presses jump slightly before landing, queue it.
+  var jumpBuffered = 0; // seconds remaining where buffered jump is valid
 
   function init(cv) {
     canvas = cv;
@@ -65,6 +67,7 @@ BR.Game = (function () {
     flashColor = null;
     flashAlpha = 0;
     speedLines = [];
+    jumpBuffered = 0;
     BR.Particles.clear();
   }
 
@@ -100,9 +103,16 @@ BR.Game = (function () {
     if (r === 'single') {
       BR.Sfx.jump();
       BR.Particles.burst(player.x + player.w / 2, player.y + player.h, 'rgba(66,232,224,0.8)', 6, 140, 0.35, 2.5, 500);
+      jumpBuffered = 0;
     } else if (r === 'double') {
       BR.Sfx.dblJump();
       BR.Particles.burst(player.x + player.w / 2, player.y + player.h, 'rgba(152,101,255,0.9)', 10, 170, 0.4, 3, 200);
+      jumpBuffered = 0;
+    } else {
+      // Jump input was not consumed (player not in a jumpable state yet,
+      // e.g. still falling). Buffer the input for 0.12s so if the player
+      // lands shortly after, the jump fires immediately on landing.
+      jumpBuffered = 0.12;
     }
   }
 
@@ -129,6 +139,24 @@ BR.Game = (function () {
 
     BR.Player.update(player, dt);
     if (!player.alive) { gameOver(); return; }
+
+    // Consume buffered jump if player is now on the ground (just landed).
+    if (jumpBuffered > 0) {
+      jumpBuffered -= dt;
+      if (player.onGround && jumpBuffered > 0) {
+        var r = BR.Player.jump(player);
+        if (r === 'single') {
+          BR.Sfx.jump();
+          BR.Particles.burst(player.x + player.w / 2, player.y + player.h, 'rgba(66,232,224,0.8)', 6, 140, 0.35, 2.5, 500);
+          jumpBuffered = 0;
+        } else if (r === 'double') {
+          BR.Sfx.dblJump();
+          BR.Particles.burst(player.x + player.w / 2, player.y + player.h, 'rgba(152,101,255,0.9)', 10, 170, 0.4, 3, 200);
+          jumpBuffered = 0;
+        }
+      }
+      if (jumpBuffered < 0) jumpBuffered = 0;
+    }
 
     spawnTimer -= dt;
     if (spawnTimer <= 0) {
@@ -233,7 +261,8 @@ BR.Game = (function () {
   }
 
   function spotFree(x, w) {
-    var pad = 70;
+    // Dynamic padding scales with current speed so faster game = wider gaps.
+    var pad = Math.max(70, speed * 0.45);
     for (var i = 0; i < obstacles.length; i++) {
       var o = obstacles[i];
       if (x < o.x + o.type.w + pad && x + w + pad > o.x) return false;
@@ -243,7 +272,7 @@ BR.Game = (function () {
 
   function spawnObstacle() {
     var type = BR.Obstacles.pick(distance);
-    var x = CFG.W + 40;
+    var x = CFG.W + 60; // spawn slightly off-screen for smoother entry
     if (!spotFree(x, type.w)) return false;
     obstacles.push({
       type: type,
@@ -252,10 +281,16 @@ BR.Game = (function () {
       t: Math.random() * 5,
       breakable: type.id === 'syntax-bug' || type.id === 'broken-code'
     });
-    if (Math.random() < 0.22 && type.h < 60) {
+    // Sometimes spawn a second obstacle, but only if it's far enough away
+    // that the player can land from the first jump before needing to jump again.
+    // Calculate min spacing based on jump air time (~0.85s) and current speed.
+    var jumpDistance = speed * 0.85; // px the player travels during one jump
+    var minSecondGap = Math.max(220, jumpDistance + 80);
+    if (Math.random() < 0.18 && type.h < 80) {
       var t2 = BR.Obstacles.pick(distance);
-      var x2 = x + type.w + 170 + Math.random() * 140;
-      if (t2 !== type && t2.h <= 56 && spotFree(x2, t2.w)) {
+      var x2 = x + type.w + minSecondGap + Math.random() * 140;
+      // Pick only shorter/simpler obstacles for second slot.
+      if (t2 !== type && t2.h <= 100 && spotFree(x2, t2.w)) {
         obstacles.push({
           type: t2, x: x2,
           y: CFG.GROUND_Y - t2.h, t: 0,
@@ -467,6 +502,8 @@ BR.Game = (function () {
   return {
     init: init, start: start, pause: pause, resume: resume, toMenu: toMenu,
     jump: jump, getState: getState, getStats: getStats, onChange: onChange,
-    setReduced: setReduced, skipRaf: skipRaf, debugPlay: debugPlay
+    setReduced: setReduced, skipRaf: skipRaf, debugPlay: debugPlay,
+    // Exposed for testing — not part of public API
+    _update: update, _render: render, _reset: reset
   };
 })();

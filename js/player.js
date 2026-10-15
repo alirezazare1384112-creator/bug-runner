@@ -42,15 +42,17 @@ BR.Player = (function () {
   function jump(p) {
     if (!p.alive) return false;
     if (p.onGround) {
+      // Single jump — apply velocity directly for responsive feel.
       p.vy = CFG.JUMP_VEL;
       p.onGround = false;
       p.jumps = 1;
-      p.squash = -0.25;
+      p.squash = -0.18; // gentle stretch upward
       return 'single';
     } else if (p.jumps < 2) {
+      // Double jump — slightly weaker but refreshes upward velocity.
       p.vy = CFG.DOUBLE_JUMP_VEL;
       p.jumps = 2;
-      p.squash = -0.2;
+      p.squash = -0.15;
       return 'double';
     }
     return false;
@@ -64,9 +66,10 @@ BR.Player = (function () {
 
     var groundTop = CFG.GROUND_Y - p.h;
     if (p.y >= groundTop) {
-      if (!p.onGround && p.vy > 200) {
-        p.squash = 0.3;
-        BR.Particles.burst(p.x + p.w / 2, CFG.GROUND_Y - 2, 'rgba(234,242,255,0.7)', 7, 110, 0.4, 2.5, 400);
+      if (!p.onGround && p.vy > 150) {
+        // Landing — gentle squash only if we fell meaningfully.
+        p.squash = 0.22;
+        BR.Particles.burst(p.x + p.w / 2, CFG.GROUND_Y - 2, 'rgba(234,242,255,0.7)', 5, 90, 0.3, 2, 300);
       }
       p.y = groundTop;
       p.vy = 0;
@@ -75,14 +78,17 @@ BR.Player = (function () {
     }
 
     if (p.iframe > 0) p.iframe -= dt;
-    p.squash += (0 - p.squash) * Math.min(1, dt * 10);
+    // Smoothly return squash to 0 (avoid wobble).
+    p.squash += (0 - p.squash) * Math.min(1, dt * 8);
 
     if (p.onGround) {
       p.state = 'run';
       p.runTimer += dt;
       if (p.runTimer > 0.09) { p.runTimer = 0; p.runFrame = (p.runFrame + 1) % 4; }
     } else {
-      p.state = p.vy < 0 ? 'jump' : 'fall';
+      // State transition: 'jump' when rising (vy < 0), 'fall' when descending (vy > 0).
+      // Small buffer near apex (|vy| < 50) keeps 'jump' for visual continuity.
+      p.state = (p.vy < 50) ? 'jump' : 'fall';
     }
   }
 
@@ -99,7 +105,9 @@ BR.Player = (function () {
   }
 
   function hitbox(p) {
-    return { x: p.x + 8, y: p.y + 6, w: p.w - 16, h: p.h - 8 };
+    // Forgiving hitbox: smaller than visual sprite so player can scrape obstacles.
+    // Inset 12px left/right and 10px top, 6px bottom (feet stay active for landing).
+    return { x: p.x + 12, y: p.y + 10, w: p.w - 24, h: p.h - 16 };
   }
 
   function draw(p, ctx, time) {
