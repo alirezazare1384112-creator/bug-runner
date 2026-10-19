@@ -28,17 +28,44 @@
   </div>
 
   <div id="overlay-start" class="overlay">
-    <div class="panel">
+    <div class="panel menu-panel">
+      <div class="menu-glow"></div>
       <h1 class="logo">BUG<span>RUNNER</span></h1>
       <p class="tagline">از دل کد خطا فرار کن، داده‌ها را جمع کن</p>
+      <div class="feature-cards">
+        <div class="feature-card">
+          <div class="feature-icon icon-runner"></div>
+          <div class="feature-text">
+            <div class="feature-title">دویدن</div>
+            <div class="feature-desc">از باگ‌ها فرار کن</div>
+          </div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon icon-jump"></div>
+          <div class="feature-text">
+            <div class="feature-title">پرش</div>
+            <div class="feature-desc">موانع رو رد کن</div>
+          </div>
+        </div>
+        <div class="feature-card">
+          <div class="feature-icon icon-debug"></div>
+          <div class="feature-text">
+            <div class="feature-title">دیباگ</div>
+            <div class="feature-desc">داده‌ها رو جمع کن</div>
+          </div>
+        </div>
+      </div>
       <div class="menu-row">
-        <button id="btn-start" class="btn primary">شروع بازی</button>
+        <button id="btn-start" class="btn primary btn-large">
+          <span class="btn-text">شروع بازی</span>
+          <span class="btn-arrow">▶</span>
+        </button>
       </div>
       <div class="menu-row meta">
-        <span id="best-score">رکورد: 0</span>
+        <span id="best-score" class="best-pill">رکورد: 0</span>
         <label class="toggle"><input type="checkbox" id="opt-fx"><span>کاهش جلوه‌ها</span></label>
       </div>
-      <p class="hint">.Space / ↑ / کلیک / لمس = پرش (دوباره = پرش دوبل)</p>
+      <p class="hint">Space / ↑ / کلیک / لمس = پرش (دوباره = پرش دوبل)</p>
     </div>
   </div>
 

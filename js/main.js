@@ -149,8 +149,13 @@
     if (BR.Game.getState() === 'playing') BR.Game.jump();
   }
 
+  function doReleaseJump() {
+    if (BR.Game.getState() === 'playing') BR.Game.releaseJump();
+  }
+
   window.addEventListener('keydown', function (e) {
     if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
+      if (e.repeat) return; // ignore key auto-repeat
       e.preventDefault();
       if (BR.Game.getState() === 'menu') { $('btn-start').click(); return; }
       if (BR.Game.getState() === 'over') { $('btn-retry').click(); return; }
@@ -163,17 +168,35 @@
     }
   });
 
+  // Key up — release jump for variable jump height (short hop vs full jump).
+  window.addEventListener('keyup', function (e) {
+    if (e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW') {
+      doReleaseJump();
+    }
+  });
+
   canvas.addEventListener('pointerdown', function (e) {
     if (BR.Game.getState() === 'playing') {
       e.preventDefault();
       doJump();
     }
   });
+  canvas.addEventListener('pointerup', function (e) {
+    if (BR.Game.getState() === 'playing') doReleaseJump();
+  });
 
   $('btn-jump').addEventListener('pointerdown', function (e) {
     e.preventDefault();
     e.stopPropagation();
     doJump();
+  });
+  $('btn-jump').addEventListener('pointerup', function (e) {
+    e.preventDefault();
+    e.stopPropagation();
+    doReleaseJump();
+  });
+  $('btn-jump').addEventListener('pointerleave', function (e) {
+    if (BR.Game.getState() === 'playing') doReleaseJump();
   });
 
   var envWatcher = setInterval(function () {

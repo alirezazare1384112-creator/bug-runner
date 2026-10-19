@@ -709,9 +709,14 @@ BR.Game = (function () {
     return state + ':' + JSON.stringify(getStats());
   }
 
+  function releaseJump() {
+    if (state !== 'playing') return;
+    BR.Player.releaseJump(player);
+  }
+
   return {
     init: init, start: start, pause: pause, resume: resume, toMenu: toMenu,
-    jump: jump, getState: getState, getStats: getStats, onChange: onChange,
+    jump: jump, releaseJump: releaseJump, getState: getState, getStats: getStats, onChange: onChange,
     setReduced: setReduced, skipRaf: skipRaf, debugPlay: debugPlay,
     // Exposed for testing — not part of public API
     _update: update, _render: render, _reset: reset, _player: function() { return player; }

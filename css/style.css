@@ -431,4 +431,140 @@ h2 {
   .medal { width: 60px; height: 60px; font-size: 30px; }
   .rank { font-size: 16px; }
   .btn { padding: 11px 24px; font-size: 14px; }
+  .feature-cards { flex-direction: column; gap: 10px; }
+  .feature-card { padding: 10px 14px; }
+  .btn-large { padding: 14px 28px; font-size: 15px; }
+}
+
+/* ---------- Menu Panel ---------- */
+.menu-panel {
+  position: relative;
+  overflow: hidden;
+  padding: 40px 48px 36px;
+}
+
+.menu-glow {
+  position: absolute;
+  top: -50%; left: -50%;
+  width: 200%; height: 200%;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(66, 232, 224, 0.15), transparent 40%),
+    radial-gradient(circle at 70% 80%, rgba(152, 101, 255, 0.15), transparent 40%),
+    radial-gradient(circle at 50% 50%, rgba(71, 123, 255, 0.08), transparent 60%);
+  animation: menuGlowShift 8s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+@keyframes menuGlowShift {
+  0% { transform: translate(0, 0) rotate(0deg); }
+  100% { transform: translate(-10%, -5%) rotate(8deg); }
+}
+
+.menu-panel > * { position: relative; z-index: 1; }
+
+/* ---------- Feature Cards ---------- */
+.feature-cards {
+  display: flex;
+  gap: 12px;
+  margin: 24px 0;
+  justify-content: center;
+}
+.feature-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(26, 33, 72, 0.5);
+  border: 1px solid rgba(71, 123, 255, 0.2);
+  border-radius: 12px;
+  padding: 12px 16px;
+  flex: 1;
+  transition: all 0.25s;
+  animation: featureCardIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+.feature-card:nth-child(1) { animation-delay: 0.1s; }
+.feature-card:nth-child(2) { animation-delay: 0.2s; }
+.feature-card:nth-child(3) { animation-delay: 0.3s; }
+@keyframes featureCardIn {
+  from { opacity: 0; transform: translateY(15px) scale(0.95); }
+  to { opacity: 1; transform: none; }
+}
+.feature-card:hover {
+  background: rgba(66, 232, 224, 0.1);
+  border-color: rgba(66, 232, 224, 0.4);
+  transform: translateY(-2px);
+}
+
+.feature-icon {
+  width: 32px; height: 32px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  position: relative;
+}
+.icon-runner {
+  background: linear-gradient(135deg, var(--blue), var(--purple));
+  box-shadow: 0 0 12px rgba(71, 123, 255, 0.5);
+}
+.icon-runner::after {
+  content: '▶';
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 14px; font-weight: 900;
+}
+.icon-jump {
+  background: linear-gradient(135deg, var(--teal), var(--blue));
+  box-shadow: 0 0 12px rgba(66, 232, 224, 0.5);
+}
+.icon-jump::after {
+  content: '↑';
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 16px; font-weight: 900;
+}
+.icon-debug {
+  background: linear-gradient(135deg, var(--yellow), var(--coral));
+  box-shadow: 0 0 12px rgba(255, 209, 102, 0.5);
+}
+.icon-debug::after {
+  content: '◆';
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: #2a1a00; font-size: 14px; font-weight: 900;
+}
+
+.feature-text { text-align: right; }
+.feature-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.feature-desc {
+  font-size: 11px;
+  opacity: 0.6;
+  margin-top: 2px;
+}
+
+/* ---------- Large Button ---------- */
+.btn-large {
+  padding: 16px 40px;
+  font-size: 17px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.btn-arrow {
+  font-size: 14px;
+  transition: transform 0.2s;
+}
+.btn-large:hover .btn-arrow {
+  transform: translateX(4px);
+}
+
+/* ---------- Best Score Pill ---------- */
+.best-pill {
+  background: rgba(255, 209, 102, 0.1);
+  border: 1px solid rgba(255, 209, 102, 0.3);
+  border-radius: 20px;
+  padding: 6px 16px;
+  font-size: 13px;
+  color: var(--yellow);
+  font-weight: 700;
 }

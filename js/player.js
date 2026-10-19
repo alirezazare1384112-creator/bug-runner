@@ -45,20 +45,30 @@ BR.Player = (function () {
       jumpPhaseTimer: 0,
       _deathTime: 0,
       // Afterimage trail — stores recent positions for motion blur effect.
-      trail: []
+      trail: [],
+      // --- Advanced control features ---
+      coyoteTimer: 0,        // grace period after leaving ground (still can jump)
+      jumpHeld: false,       // is jump key currently held down?
+      jumpCutApplied: false  // has jump-cut (early release) been applied?
     };
   }
 
+  // --- Advanced jump control flags ---
+  var COYOTE_TIME = 0.1;     // seconds player can jump after leaving ground
+  var JUMP_CUT_MULTIPLIER = 0.45; // multiply vy when jump released early
+
   function jump(p) {
     if (!p.alive) return false;
-    if (p.onGround || p.jumpPhase === 'anticipate') {
-      // Single jump — with anticipation: brief crouch before launching.
-      // The actual velocity is applied after a short delay (handled in update).
+    p.jumpHeld = true;
+    // First jump — allowed from ground OR during coyote time (just left ground).
+    if (p.onGround || p.jumpPhase === 'anticipate' || (p.jumps === 0 && p.coyoteTimer > 0)) {
       p.jumpPhase = 'anticipate';
       p.jumpPhaseTimer = 0.08; // 80ms anticipation crouch
       p.squashTarget = 0.25; // squash down (compress) for anticipation
       p.jumps = 1;
+      p.coyoteTimer = 0; // consume coyote time
       p._pendingJumpVel = CFG.JUMP_VEL;
+      p.jumpCutApplied = false;
       return 'single';
     } else if (p.jumps < 2) {
       // Double jump — instant, with flip stretch and burst.
@@ -66,9 +76,22 @@ BR.Player = (function () {
       p.jumps = 2;
       p.squashTarget = -0.28; // strong stretch upward for double jump
       p.jumpPhase = 'rise';
+      p.jumpCutApplied = false;
       return 'double';
     }
     return false;
+  }
+
+  // Called when player releases the jump key — applies jump-cut for variable height.
+  function releaseJump(p) {
+    if (!p.alive) return;
+    p.jumpHeld = false;
+    // If player is rising and hasn't been cut yet, reduce upward velocity.
+    // This allows short hops (tap) vs full jumps (hold).
+    if (p.vy < 0 && !p.jumpCutApplied) {
+      p.vy *= JUMP_CUT_MULTIPLIER;
+      p.jumpCutApplied = true;
+    }
   }
 
   function update(p, dt) {
@@ -132,6 +155,22 @@ BR.Player = (function () {
       if (p.jumpPhase !== 'land' && p.jumpPhase !== 'anticipate') {
         p.jumps = 0;
         p.jumpPhase = '';
+      }
+      // Reset coyote timer on landing.
+      p.coyoteTimer = 0;
+    } else if (p.y < groundTop) {
+      // Player is in the air.
+      if (p.onGround) {
+        // Just left the ground (walked off edge or got knocked back).
+        // Start coyote timer so player can still jump briefly.
+        p.onGround = false;
+        p.coyoteTimer = COYOTE_TIME;
+        if (p.jumps === 0) p.jumps = 1; // count the "free" jump as used
+      }
+      // Tick down coyote timer.
+      if (p.coyoteTimer > 0) {
+        p.coyoteTimer -= dt;
+        if (p.coyoteTimer <= 0) p.coyoteTimer = 0;
       }
     }
 
@@ -415,5 +454,5 @@ BR.Player = (function () {
     ctx.fill();
   }
 
-  return { init: init, create: create, jump: jump, update: update, hurt: hurt, hitbox: hitbox, draw: draw, shadow: shadow, MANIFEST: MANIFEST };
+  return { init: init, create: create, jump: jump, releaseJump: releaseJump, update: update, hurt: hurt, hitbox: hitbox, draw: draw, shadow: shadow, MANIFEST: MANIFEST };
 })();
