@@ -43,7 +43,9 @@ BR.Player = (function () {
       // Jump animation phases: 'anticipate' | 'rise' | 'apex' | 'fall' | 'land'
       jumpPhase: '',
       jumpPhaseTimer: 0,
-      _deathTime: 0
+      _deathTime: 0,
+      // Afterimage trail — stores recent positions for motion blur effect.
+      trail: []
     };
   }
 
@@ -71,6 +73,22 @@ BR.Player = (function () {
 
   function update(p, dt) {
     if (!p.alive) return;
+
+    // Update trail — record recent positions for afterimage effect.
+    // Only record when player is moving (in air) for nice motion blur.
+    if (!p.onGround && Math.abs(p.vy) > 50) {
+      p.trail.push({ x: p.x, y: p.y, age: 0, state: p.state, runFrame: p.runFrame });
+      if (p.trail.length > 4) p.trail.shift();
+    } else {
+      // Clear trail quickly when on ground.
+      if (p.trail.length > 0) p.trail.shift();
+    }
+    // Age trail entries.
+    for (var ti = 0; ti < p.trail.length; ti++) {
+      p.trail[ti].age += dt;
+    }
+    // Remove old entries.
+    p.trail = p.trail.filter(function(t) { return t.age < 0.25; });
 
     // --- Jump phase machine for realistic animation ---
     if (p.jumpPhase === 'anticipate') {
@@ -255,6 +273,56 @@ BR.Player = (function () {
     var cx = p.x + p.w / 2;
     var by = p.y + p.h;
     ctx.translate(cx, by);
+
+    // Draw afterimage trail first (behind player).
+    if (p.trail.length > 0) {
+      ctx.save();
+      for (var tri = 0; tri < p.trail.length; tri++) {
+        var t = p.trail[tri];
+        var alpha = (1 - t.age / 0.25) * 0.6; // increased from 0.35 to 0.6
+        if (alpha <= 0.05) continue;
+        ctx.globalAlpha = alpha;
+        // Tint trail sprites cyan for glow effect.
+        ctx.globalCompositeOperation = 'lighter';
+        var trailSprite = BR.Assets.get('byte-' + t.state) || BR.Assets.get('byte-idle');
+        if (trailSprite) {
+          var tcx = t.x + p.w / 2 - cx;
+          var tby = t.y + p.h - by;
+          ctx.save();
+          ctx.translate(tcx, tby);
+          var sw = trailSprite.width, sh = trailSprite.height;
+          var sAspect = sw / sh;
+          var targetW = p.w + 16, targetH = p.h + 16;
+          var tAspect = targetW / targetH;
+          var dw, dh;
+          if (sAspect > tAspect) { dw = targetW; dh = targetW / sAspect; }
+          else { dh = targetH; dw = targetH * sAspect; }
+          ctx.drawImage(trailSprite, -dw / 2, -dh, dw, dh);
+          ctx.restore();
+        }
+      }
+      ctx.restore();
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = 'source-over';
+    }
+
+    // Soft glow halo behind player (gives weight and visibility).
+    if (!p.iframe || Math.floor(time * 12) % 3 !== 0) {
+      var glowRadius = p.h * 1.1;
+      var glowAlpha = 0.3;
+      // Pulse glow based on state.
+      if (p.state === 'jump' || p.state === 'fall') glowAlpha = 0.4;
+      if (p.state === 'hurt') glowAlpha = 0.5;
+      var grad = ctx.createRadialGradient(0, -p.h / 2, 0, 0, -p.h / 2, glowRadius);
+      grad.addColorStop(0, 'rgba(66, 232, 224, ' + glowAlpha + ')');
+      grad.addColorStop(0.4, 'rgba(71, 123, 255, ' + (glowAlpha * 0.6) + ')');
+      grad.addColorStop(0.8, 'rgba(152, 101, 255, ' + (glowAlpha * 0.2) + ')');
+      grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+      ctx.globalCompositeOperation = 'lighter';
+      ctx.fillStyle = grad;
+      ctx.fillRect(-glowRadius, -p.h - 20, glowRadius * 2, p.h + 40);
+      ctx.globalCompositeOperation = 'source-over';
+    }
 
     // Use smoothed tilt value (already lerped in update).
     ctx.rotate(p.tilt);

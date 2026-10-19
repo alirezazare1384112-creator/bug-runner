@@ -454,6 +454,48 @@ BR.Environments = (function () {
   function get(i) { return ENV_DEFS[i % ENV_DEFS.length]; }
   function count() { return ENV_DEFS.length; }
 
+  // Ambient floating particles — dust/static/data motes drifting in the air.
+  // Persistent across frames so they don't flicker.
+  var ambientPool = [];
+  var ambientInited = false;
+  function initAmbient() {
+    if (ambientInited) return;
+    ambientInited = true;
+    for (var i = 0; i < 40; i++) {
+      ambientPool.push({
+        x: Math.random() * 960,
+        y: 50 + Math.random() * 350,
+        vx: -20 - Math.random() * 40,
+        vy: -5 + Math.random() * 10,
+        size: 1 + Math.random() * 2,
+        alpha: 0.2 + Math.random() * 0.4,
+        twinkle: Math.random() * Math.PI * 2
+      });
+    }
+  }
+
+  function drawAmbient(ctx, scrollX, w, h, gy, accentColor) {
+    initAmbient();
+    var now = performance.now() / 1000;
+    for (var i = 0; i < ambientPool.length; i++) {
+      var p = ambientPool[i];
+      // Move with parallax (slower than foreground).
+      p.x += p.vx * 0.016;
+      p.y += p.vy * 0.016;
+      // Wrap around screen.
+      if (p.x < -10) p.x = w + 10;
+      if (p.x > w + 10) p.x = -10;
+      if (p.y < 30) p.y = gy - 20;
+      if (p.y > gy - 20) p.y = 30;
+      // Twinkle effect — alpha oscillates.
+      var twinkle = 0.5 + 0.5 * Math.sin(now * 2 + p.twinkle);
+      ctx.globalAlpha = p.alpha * twinkle;
+      ctx.fillStyle = accentColor;
+      ctx.fillRect(p.x, p.y, p.size, p.size);
+    }
+    ctx.globalAlpha = 1;
+  }
+
   function drawGround(ctx, env, scrollX, w, h, gy) {
     var gnd = env.ground;
     var g = ctx.createLinearGradient(0, gy, 0, h);
@@ -491,5 +533,5 @@ BR.Environments = (function () {
     }
   }
 
-  return { get: get, count: count, drawGround: drawGround, drawSky: drawSky };
+  return { get: get, count: count, drawGround: drawGround, drawSky: drawSky, drawAmbient: drawAmbient };
 })();

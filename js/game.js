@@ -251,6 +251,12 @@ BR.Game = (function () {
         var popText = '+' + it.type.score;
         if (it.type.kind === 'heart') popText = '+HP';
         addPopText(it.x + it.type.w / 2, it.y, popText, col);
+        // Big items (xp, heart) get extra juice: flash + shake.
+        if (it.type.kind === 'xp' || it.type.kind === 'heart') {
+          flashColor = col;
+          flashAlpha = 0.12;
+          shake = Math.max(shake, 0.15);
+        }
         if (it.type.kind === 'xp' || it.type.kind === 'fragment') BR.Sfx.bigCollect();
         else if (it.type.kind === 'heart') BR.Sfx.bigCollect();
         else BR.Sfx.collect();
@@ -506,6 +512,11 @@ BR.Game = (function () {
 
     drawLayers(env, 1);
 
+    // Ambient floating particles for atmosphere (depth/parallax feel).
+    if (!reducedFx) {
+      BR.Environments.drawAmbient(ctx, scrollX, W, H, gy, env.accent);
+    }
+
     if (envFade > 0 && envPrev >= 0) {
       var k2 = 1 - envFade / CFG.ENV_FADE_TIME;
       ctx.save();
@@ -515,6 +526,16 @@ BR.Game = (function () {
     }
 
     BR.Environments.drawGround(ctx, env, scrollX, W, H, gy);
+
+    // Ground glow line — a bright neon stripe on the ground edge for energy feel.
+    var gradGround = ctx.createLinearGradient(0, gy - 4, 0, gy + 4);
+    gradGround.addColorStop(0, 'rgba(0,0,0,0)');
+    gradGround.addColorStop(0.5, env.accent);
+    gradGround.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.globalAlpha = 0.5;
+    ctx.fillStyle = gradGround;
+    ctx.fillRect(0, gy - 4, W, 8);
+    ctx.globalAlpha = 1;
 
     var i;
     // Cache sprite references per obstacle/item to avoid hash lookups every frame.
