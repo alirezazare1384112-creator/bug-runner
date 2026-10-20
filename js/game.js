@@ -661,16 +661,18 @@ BR.Game = (function () {
     var px = 150;
     var py = CFG.GROUND_Y - CFG.PLAYER_H + Math.sin(time * 3) * 4;
     // Create a fake player with all required fields for proper animation.
-    if (!drawMenuRunner._fake) {
-      drawMenuRunner._fake = {
+    // Initialize once and reuse.
+    var fake = drawMenuRunner._fake;
+    if (!fake) {
+      fake = {
         x: px, y: py, w: CFG.PLAYER_W, h: CFG.PLAYER_H,
         onGround: true, vy: 0, alive: true, iframe: 0, squash: 0, squashTarget: 0,
         tilt: 0, tiltTarget: 0, state: 'run', prevState: 'run', stateBlend: 1,
         runFrame: 0, runTimer: 0, jumpPhase: '', hp: CFG.HP, jumps: 0,
-        _deathTime: 0
+        _deathTime: 0, trail: [], coyoteTimer: 0, jumpHeld: false, jumpCutApplied: false
       };
+      drawMenuRunner._fake = fake;
     }
-    var fake = drawMenuRunner._fake;
     fake.x = px;
     fake.y = py;
     // Animate run cycle.
